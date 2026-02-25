@@ -1,16 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:nearfix_partner/authentication/login_screen.dart';
+import 'dart:io';
 import 'package:nearfix_partner/chat_screen/chat_screen_tile.dart';
 import 'package:nearfix_partner/home_screen/home_screen.dart';
+import 'package:nearfix_partner/market/screen/market_screen.dart';
+import 'package:nearfix_partner/profile/profile_screen.dart';
+
+// --- 1. THE SSL BYPASS ---
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
 
 void main() {
+  HttpOverrides.global = MyHttpOverrides();
+
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: MyApp(),
+    home: LoginScreen(),
   ));
 }
 
+// --- 2. MAIN NAVIGATION WRAPPER ---
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  // Define variables to receive data from LoginScreen
+  final String userName;
+  final String specialty;
+
+  // Add them to the constructor
+  const MyApp({
+    super.key,
+    required this.userName,
+    required this.specialty
+  });
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -19,17 +44,21 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(), // Your Dashboard UI
-    const Center(child: Text("Market Screen")),
-    const ChatScreen(),
-    const Center(child: Text("Profile Screen")),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    // 3. Define screens inside build to access 'widget.userName'
+    final List<Widget> screens = [
+      HomeScreen(
+        userName: widget.userName,
+        job_title: widget.specialty, // Matching your HomeScreen parameter
+      ),
+      const MarketScreen(),
+      const ChatScreen(),
+      const ProviderProfileScreen(),
+    ];
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {

@@ -1,35 +1,83 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/authentication/signup_screen.dart';
+import 'package:nearfix_partner/main.dart';
 
-void main() {
-  // Sets the status bar to transparent for a cleaner look
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-  ));
-  runApp(const GatewayApp());
-}
-
-class GatewayApp extends StatelessWidget {
-  const GatewayApp({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Gateway Partner',
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'sans-serif', // Uses default system sans-serif
-      ),
-      home: const LoginScreen(),
-    );
-  }
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class _LoginScreenState extends State<LoginScreen> {
+  final _idController = TextEditingController();
+  final _passController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    if (_idController.text.isEmpty || _passController.text.isEmpty) {
+      _showSnackBar("Partner ID and Passcode are required");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      var uri = Uri.parse('https://nonregimented-ably-amare.ngrok-free.dev/nearfix/partner_login.php');
+      var response = await http.post(
+        uri,
+        headers: {'ngrok-skip-browser-warning': 'true'},
+        body: {
+          'mobile': _idController.text,
+          'passcode': _passController.text,
+        },
+      );
+
+      final result = jsonDecode(response.body);
+
+      if (result['status'] == 'success') {
+        final prefs = await SharedPreferences.getInstance();
+
+        // --- CRITICAL DATA SAVING ---
+        if (result['id'] != null) {
+          await prefs.setInt('provider_id', int.parse(result['id'].toString()));
+          // Also save image and name for internal use
+          await prefs.setString('provider_name', result['user_name'] ?? "Partner");
+          await prefs.setString('provider_image', result['profile_image'] ?? "");
+        }
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MyApp(
+              userName: result['user_name'] ?? "Partner",
+              specialty: result['specialty'] ?? "",
+            ),
+          ),
+        );
+      } else {
+        _showSnackBar(result['message'] ?? "Login failed");
+      }
+    } catch (e) {
+      _showSnackBar("Connection failed: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +87,13 @@ class LoginScreen extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverFillRemaining(
-              hasScrollBody: false, // Allows centering content while keeping it scrollable
+              hasScrollBody: false,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 2),
-
-                    // --- PURPLE ICON BOX ---
                     Container(
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
@@ -61,8 +107,6 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 32),
-
-                    // --- BRANDING ---
                     const Text(
                       'GATEWAY',
                       style: TextStyle(
@@ -82,28 +126,24 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 48),
-
-                    // --- INPUT FIELDS ---
                     _buildTextField(
-                      hint: 'Partner ID',
+                      hint: 'Partner ID (Mobile)',
                       icon: Icons.person_outline,
+                      controller: _idController,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
                       hint: 'Passcode',
                       icon: Icons.key_outlined,
                       isPassword: true,
+                      controller: _passController,
                     ),
                     const SizedBox(height: 32),
-
-                    // --- CONNECT BUTTON ---
                     SizedBox(
                       width: double.infinity,
                       height: 58,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Handle Login Logic here
-                        },
+                        onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF8B5CF6),
                           foregroundColor: Colors.white,
@@ -112,19 +152,19 @@ class LoginScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text(
+                        child: _isLoading
+                            ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        )
+                            : const Text(
                           'CONNECT',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
-
                     const Spacer(flex: 3),
-
-                    // --- FOOTER ---
                     Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: Row(
@@ -140,8 +180,10 @@ class LoginScreen extends StatelessWidget {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (context)=>SignUpScreen()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                              );
                             },
                             child: const Text(
                               "REGISTER NOW",
@@ -165,22 +207,23 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // A reusable TextField widget to keep the code DRY (Don't Repeat Yourself)
   Widget _buildTextField({
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
     bool isPassword = false,
   }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       cursorColor: const Color(0xFF8B5CF6),
       decoration: InputDecoration(
         hintText: hint,
+        prefixIcon: Icon(icon, color: Colors.black26),
         hintStyle: const TextStyle(color: Colors.black26, fontSize: 15),
         filled: true,
         fillColor: const Color(0xFFF9FAFB),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        // Subtle border as seen in the image
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFFF3F4F6), width: 1),

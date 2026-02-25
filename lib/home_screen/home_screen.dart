@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  // 1. Declare the variables to receive data from MyApp
+  final String userName;
+  final String job_title;
+
+  // 2. Add them to the constructor
+  const HomeScreen({
+    super.key,
+    required this.userName,
+    required this.job_title
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +23,7 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
+
               // --- PROFILE HEADER ---
               Row(
                 children: [
@@ -26,13 +36,20 @@ class HomeScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Rahul Sharma",
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-                      ),
+                      // --- DYNAMIC NAME ---
                       Text(
-                        "PLUMBING SPECIALIST",
-                        style: TextStyle(color: Colors.purple.shade700, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1),
+                        userName,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
+                      // --- DYNAMIC JOB TITLE ---
+                      Text(
+                        job_title.toUpperCase(),
+                        style: TextStyle(
+                            color: Colors.purple.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            letterSpacing: 1
+                        ),
                       ),
                     ],
                   ),
@@ -53,7 +70,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 40),
 
               // --- PRIORITY MISSION ---
-              const Text("PRIORITY MISSION", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, color: Colors.black87)),
+              const Text("PRIORITY MISSION",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, color: Colors.black87)
+              ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(20),

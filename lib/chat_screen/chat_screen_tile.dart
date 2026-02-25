@@ -1,162 +1,166 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-
-import 'chatscreen.dart';
-
-class ChatScreen extends StatelessWidget {
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nearfix_partner/chat_screen/chatscreen.dart';
+class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  List<dynamic> _chatList = [];
+  bool _isLoading = true;
+  int? _myProviderId;
+
+  final String _baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/get_chat_list.php";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProviderAndChats();
+  }
+
+  Future<void> _loadProviderAndChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    _myProviderId = prefs.getInt('provider_id');
+    if (_myProviderId != null) {
+      _fetchChatList();
+    }
+  }
+
+  Future<void> _fetchChatList() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$_baseUrl?user_id=$_myProviderId"),
+        headers: {"ngrok-skip-browser-warning": "true"},
+      );
+      final decoded = jsonDecode(response.body);
+      if (decoded['success']) {
+        setState(() {
+          _chatList = decoded['data'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-
-      /* ---------- HEADER ---------- */
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 20,
-        title: const Text(
-          "Messages",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: Colors.black,
-          ),
-        ),
+        elevation: 0.5,
+        title: const Text("Messages", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
-
-      /* ---------- BODY ---------- */
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: const [
-            ChatCard(
-              name: "Sarah Jenkins",
-              message: "I'm arriving in about 10 minutes, see you soon!",
-              time: "2m ago",
-              isOnline: true,
-            ),
-            SizedBox(height: 14),
-            ChatCard(
-              name: "John Moyer",
-              message: "Thanks for the tip!",
-              time: "Yesterday",
-              isOnline: false,
-              faded: true,
-            ),
-          ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)))
+          : RefreshIndicator(
+        onRefresh: _fetchChatList,
+        child: ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: _chatList.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final chat = _chatList[index];
+            return ChatCard(
+              name: chat['contact_name'] ?? "User",
+              message: chat['message'] ?? "",
+              imageUrl: chat['contact_image'],
+              currentUserId: _myProviderId!,
+              peerId: int.parse(chat['contact_id'].toString()),
+              time: chat['created_at'] ?? "",
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/* ================= CHAT CARD ================= */
-
 class ChatCard extends StatelessWidget {
   final String name;
   final String message;
+  final String? imageUrl;
+  final int currentUserId;
+  final int peerId;
   final String time;
-  final bool isOnline;
-  final bool faded;
 
   const ChatCard({
     super.key,
     required this.name,
     required this.message,
+    this.imageUrl,
+    required this.currentUserId,
+    required this.peerId,
     required this.time,
-    required this.isOnline,
-    this.faded = false,
   });
+
+  String _formatTime(String rawDate) {
+    if (rawDate.isEmpty) return "";
+    try {
+      DateTime dt = DateTime.parse(rawDate);
+      String hour = dt.hour > 12 ? (dt.hour - 12).toString() : (dt.hour == 0 ? "12" : dt.hour.toString());
+      String minute = dt.minute.toString().padLeft(2, '0');
+      String ampm = dt.hour >= 12 ? "PM" : "AM";
+      return "$hour:$minute $ampm";
+    } catch (e) { return ""; }
+  }
 
   @override
   Widget build(BuildContext context) {
+    String fullPath = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/$imageUrl";
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProviderChatMessageScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProviderChatMessageScreen(
+              currentUserId: currentUserId,
+              peerId: peerId,
+              peerName: name,
+              peerImageUrl: fullPath,
+            ),
+          ),
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
         ),
         child: Row(
           children: [
-            /* ----- AVATAR ----- */
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.grey.shade200,
-                  child: Icon(Icons.person, color: Colors.grey.shade500),
-                ),
-                if (isOnline)
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.1),
+              backgroundImage: (imageUrl != null && imageUrl!.isNotEmpty) ? NetworkImage(fullPath) : null,
+              child: (imageUrl == null || imageUrl!.isEmpty)
+                  ? Text(name[0], style: const TextStyle(color: Color(0xFF8B5CF6)))
+                  : null,
             ),
-
-            const SizedBox(width: 12),
-
-            /* ----- TEXT ----- */
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        time,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(_formatTime(time), style: const TextStyle(color: Colors.grey, fontSize: 11)),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    message,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: faded
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade600,
-                    ),
-                  ),
+                  const SizedBox(height: 4),
+                  Text(message, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             ),

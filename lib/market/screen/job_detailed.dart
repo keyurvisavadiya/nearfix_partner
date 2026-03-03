@@ -286,18 +286,24 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _buildCTA() {
     switch (job.status) {
+    // Both 'available' and 'pending' show the Accept button
       case JobStatus.available:
+      case JobStatus.pending:
         return _ctaButton(
           label: 'ACCEPT JOB',
           color: AppColors.dark,
           onTap: onAccept,
         );
+
+    // Both 'active' and 'Confirmed' show the Finish button
       case JobStatus.active:
+      case JobStatus.Confirmed:
         return _ctaButton(
           label: 'FINISH JOB',
           color: AppColors.green,
           onTap: onFinish,
         );
+
       case JobStatus.completed:
         return const Center(
           child: Text(
@@ -310,6 +316,10 @@ class JobDetailScreen extends StatelessWidget {
             ),
           ),
         );
+
+    // Safety default to catch anything else
+      default:
+        return const SizedBox.shrink();
     }
   }
 

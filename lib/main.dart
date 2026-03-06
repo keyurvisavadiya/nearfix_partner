@@ -5,6 +5,7 @@ import 'package:nearfix_partner/chat_screen/chat_screen_tile.dart';
 import 'package:nearfix_partner/home_screen/home_screen.dart';
 import 'package:nearfix_partner/market/screen/market_screen.dart';
 import 'package:nearfix_partner/profile/profile_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // --- 1. THE SSL BYPASS ---
 class MyHttpOverrides extends HttpOverrides {
@@ -15,27 +16,26 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
 
-  runApp(const MaterialApp(
+  final prefs = await SharedPreferences.getInstance();
+
+  // Retrieve saved ID to check if user is logged in
+  final int? providerId = prefs.getInt('provider_id');
+
+  runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: LoginScreen(),
+    theme: ThemeData(useMaterial3: true), // Enable modern Material 3 styling
+    // If providerId exists, go to the Navigation Wrapper, else Login
+    home: providerId != null ? const MyApp() : const LoginScreen(),
   ));
 }
 
 // --- 2. MAIN NAVIGATION WRAPPER ---
 class MyApp extends StatefulWidget {
-  // Define variables to receive data from LoginScreen
-  final String userName;
-  final String specialty;
-
-  // Add them to the constructor
-  const MyApp({
-    super.key,
-    required this.userName,
-    required this.specialty
-  });
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -44,21 +44,21 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _selectedIndex = 0;
 
+  // Define screens here. Notice HomeScreen no longer needs parameters passed from here.
+  final List<Widget> _screens = [
+    const HomeScreen(), // Now fully dynamic inside its own state
+    const MarketScreen(),
+    const ChatScreen(),
+    const ProviderProfileScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    // 3. Define screens inside build to access 'widget.userName'
-    final List<Widget> screens = [
-      HomeScreen(
-        userName: widget.userName,
-        job_title: widget.specialty, // Matching your HomeScreen parameter
-      ),
-      const MarketScreen(),
-      const ChatScreen(),
-      const ProviderProfileScreen(),
-    ];
-
     return Scaffold(
-      body: screens[_selectedIndex],
+      body: IndexedStack( // Using IndexedStack preserves the scroll state of your screens
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -66,10 +66,14 @@ class _MyAppState extends State<MyApp> {
             _selectedIndex = index;
           });
         },
+        backgroundColor: Colors.white,
+        elevation: 10,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF9333EA),
         unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+        unselectedLabelStyle: const TextStyle(fontSize: 10),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'HOME'),
           BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), label: 'MARKET'),

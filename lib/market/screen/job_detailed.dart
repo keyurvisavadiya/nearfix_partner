@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../chat_screen/chatscreen.dart';
 import '../models/job.dart';
 import '../models/app_colors.dart';
 import '../widgets/section_label.dart';
@@ -196,19 +198,58 @@ class JobDetailScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Call button
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.green,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.phone_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+
+                        // Action Buttons Row
+                        Row(
+                          children: [
+                            // MESSAGE BUTTON
+                            GestureDetector(
+                              onTap: () async {
+                                final prefs = await SharedPreferences.getInstance();
+                                int? myId = prefs.getInt('provider_id');
+                                if (myId != null && context.mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProviderChatMessageScreen(
+                                        currentUserId: myId,
+                                        peerId: job.customerId, // Uses the ID from our model
+                                        peerName: job.customer,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: AppColors.purple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.chat_bubble_rounded,
+                                  color: AppColors.purple,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // CALL BUTTON
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.green,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.phone_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -286,7 +327,6 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _buildCTA() {
     switch (job.status) {
-    // Both 'available' and 'pending' show the Accept button
       case JobStatus.available:
       case JobStatus.pending:
         return _ctaButton(
@@ -295,7 +335,6 @@ class JobDetailScreen extends StatelessWidget {
           onTap: onAccept,
         );
 
-    // Both 'active' and 'Confirmed' show the Finish button
       case JobStatus.active:
       case JobStatus.Confirmed:
         return _ctaButton(
@@ -317,7 +356,6 @@ class JobDetailScreen extends StatelessWidget {
           ),
         );
 
-    // Safety default to catch anything else
       default:
         return const SizedBox.shrink();
     }

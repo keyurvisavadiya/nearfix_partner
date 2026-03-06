@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
-
 enum JobStatus { available, active, completed, pending, Confirmed }
 
 class Job {
-  final int id;
+  final int id; // Booking ID
+  final int customerId; // User ID for Chat
   final String type;
   final String location;
   final String rate;
@@ -15,6 +14,7 @@ class Job {
 
   Job({
     required this.id,
+    required this.customerId,
     required this.type,
     required this.location,
     required this.rate,
@@ -28,18 +28,16 @@ class Job {
   factory Job.fromJson(Map<String, dynamic> json) {
     return Job(
       id: int.parse(json['id'].toString()),
+      customerId: int.parse(json['user_id'].toString()), // From the PHP 'user_id'
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
-      location: json['address'] ?? 'No Address Provided',
-      // Using 'amount' from your JSON
-      rate: json['amount'] != null ? "₹${json['amount']}" : "₹0",
+      location: json['address'] ?? 'No Address',
+      rate: "₹${json['amount'] ?? '0'}",
       category: json['service_name'] ?? 'General',
-      // Using 'customer_name' from the PHP JOIN
       customer: json['customer_name'] ?? "User #${json['user_id']}",
       customerRating: '4.9',
-      // Mapping 'notes' to detailedDescription
-      detailedDescription: (json['notes'] != null && json['notes'].toString().trim().isNotEmpty)
+      detailedDescription: (json['notes'] != null && json['notes'].toString().isNotEmpty)
           ? json['notes']
-          : "No additional notes provided for this booking.",
+          : "No additional notes provided.",
       status: _parseStatus(json['status']),
     );
   }

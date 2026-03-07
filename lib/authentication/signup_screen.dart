@@ -12,13 +12,15 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  // --- CONTROLLERS ---
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passcodeController = TextEditingController();
   final _jobController = TextEditingController();
   final _expController = TextEditingController();
-  final _aboutController = TextEditingController(); // 1. Added Bio Controller
+  final _aboutController = TextEditingController();
+  final _visitingChargeController = TextEditingController(); // NEW
   final _idNumController = TextEditingController();
   final _bankController = TextEditingController();
   final _accController = TextEditingController();
@@ -35,43 +37,245 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final List<String> _cities = ['Ahmedabad', 'Mumbai', 'Bangalore', 'Delhi', 'Pune'];
   final ImagePicker _picker = ImagePicker();
 
-  void _resetForm() {
-    setState(() {
-      _nameController.clear();
-      _phoneController.clear();
-      _emailController.clear();
-      _passcodeController.clear();
-      _jobController.clear();
-      _expController.clear();
-      _aboutController.clear(); // 2. Reset the bio field
-      _idNumController.clear();
-      _bankController.clear();
-      _accController.clear();
-      _ifscController.clear();
+  Future<void> _submitEnrollment() async {
+    // Basic Validation
+    if (_profilePhoto == null || _nameController.text.isEmpty || _visitingChargeController.text.isEmpty) {
+      _showSnackBar("Please fill required fields and upload a profile photo", isError: true);
+      return;
+    }
 
-      _selectedIdentity = null;
-      _selectedCity = null;
-      _idFront = null;
-      _idBack = null;
-      _profilePhoto = null;
-    });
+    setState(() => _isLoading = true);
+
+    try {
+      var uri = Uri.parse('https://nonregimented-ably-amare.ngrok-free.dev/nearfix/register.php');
+      var request = http.MultipartRequest('POST', uri);
+
+      // Necessary for ngrok and JSON handling
+      request.headers.addAll({
+        'ngrok-skip-browser-warning': 'true',
+        'Accept': 'application/json',
+      });
+
+      // --- TEXT FIELDS (MUST MATCH PHP $_POST KEYS) ---
+      request.fields['full_name'] = _nameController.text;
+      request.fields['mobile'] = _phoneController.text;
+      request.fields['email'] = _emailController.text;
+      request.fields['passcode'] = _passcodeController.text;
+      request.fields['job_title'] = _jobController.text;
+      request.fields['about_me'] = _aboutController.text;
+      request.fields['experience'] = _expController.text;
+      request.fields['visiting_charges'] = _visitingChargeController.text; // Matches PHP
+      request.fields['city'] = _selectedCity ?? "";
+      request.fields['id_type'] = _selectedIdentity ?? "";
+      request.fields['id_num'] = _idNumController.text;
+      request.fields['bank'] = _bankController.text;
+      request.fields['account'] = _accController.text;
+      request.fields['ifsc'] = _ifscController.text;
+
+      // --- FILE FIELDS (MUST MATCH PHP $_FILES KEYS) ---
+      if (_idFront != null) {
+        request.files.add(await http.MultipartFile.fromPath('id_front', _idFront!.path));
+      }
+      if (_idBack != null) {
+        request.files.add(await http.MultipartFile.fromPath('id_back', _idBack!.path));
+      }
+      request.files.add(await http.MultipartFile.fromPath('profile_photo', _profilePhoto!.path));
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          _showSuccessDialog();
+        } else {
+          _showSnackBar(result['message'] ?? "Registration failed", isError: true);
+        }
+      } else {
+        _showSnackBar("Server error: ${response.statusCode}", isError: true);
+      }
+    } catch (e) {
+      _showSnackBar("Connection failed: $e", isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  void _showSuccess() {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
+        title: const Text('Partner Enrollment', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Join NearFix', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+            const Text('CREATE YOUR PROFESSIONAL PROFILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+
+            _buildSectionLabel('PERSONAL DETAILS'),
+            _buildTextField('Full Legal Name', _nameController),
+            _buildTextField('Mobile Number', _phoneController, type: TextInputType.phone),
+            _buildTextField('Email Address', _emailController, type: TextInputType.emailAddress),
+            _buildTextField('Set Passcode', _passcodeController, isPass: true),
+
+            _buildSectionLabel('EXPERTISE & PRICING'),
+            _buildTextField('Job Title (e.g. Electrician)', _jobController),
+            _buildTextField('Years of Experience', _expController, type: TextInputType.number),
+
+            // --- VISITING CHARGE FIELD ---
+            _buildTextField(
+                'Visiting Charges (₹)',
+                _visitingChargeController,
+                type: TextInputType.number,
+                prefixIcon: Icons.currency_rupee_rounded
+            ),
+
+            _buildTextField('About Your Work / Skills', _aboutController, maxLines: 3, type: TextInputType.multiline),
+            _buildDropdown('Service City', _selectedCity, _cities, (val) => setState(() => _selectedCity = val)),
+
+            _buildSectionLabel('IDENTITY VERIFICATION'),
+            _buildDropdown('Identity Type', _selectedIdentity, _identityTypes, (val) => setState(() => _selectedIdentity = val)),
+            _buildTextField('Identity Number', _idNumController),
+
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _buildUploadBox('ID FRONT', _idFront, () => _pickImage('front'))),
+                const SizedBox(width: 12),
+                Expanded(child: _buildUploadBox('ID BACK', _idBack, () => _pickImage('back'))),
+              ],
+            ),
+
+            _buildSectionLabel('BANKING DETAILS (FOR PAYOUTS)'),
+            _buildTextField('Bank Name', _bankController),
+            _buildTextField('Account Number', _accController, type: TextInputType.number),
+            _buildTextField('IFSC Code', _ifscController),
+
+            _buildSectionLabel('PROFILE PICTURE'),
+            _buildPhotoTile(_profilePhoto, () => _pickImage('profile')),
+
+            const SizedBox(height: 40),
+            SliverButton(
+              isLoading: _isLoading,
+              onPressed: _submitEnrollment,
+              text: 'SUBMIT APPLICATION',
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- UI COMPONENTS ---
+
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(top: 24, bottom: 12),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 1)),
+  );
+
+  Widget _buildTextField(String hint, TextEditingController controller, {TextInputType type = TextInputType.text, bool isPass = false, int maxLines = 1, IconData? prefixIcon}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: type,
+        obscureText: isPass,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 18, color: Colors.black45) : null,
+          filled: true,
+          fillColor: const Color(0xFFF9FAFB),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF1F5F9))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF9333EA))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String hint, String? value, List<String> items, Function(String?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: hint,
+          filled: true,
+          fillColor: const Color(0xFFF9FAFB),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUploadBox(String label, File? file, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          image: file != null ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
+        ),
+        child: file == null ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_a_photo_outlined, size: 24, color: Colors.black26),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black38)),
+          ],
+        ) : null,
+      ),
+    );
+  }
+
+  Widget _buildPhotoTile(File? file, VoidCallback onTap) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFF1F5F9))),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: file != null
+                ? Image.file(file, width: 50, height: 50, fit: BoxFit.cover)
+                : Container(width: 50, height: 50, color: Colors.black12, child: const Icon(Icons.person, color: Colors.white)),
+          ),
+          const SizedBox(width: 16),
+          const Text('PROFESSIONAL PHOTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45)),
+          const Spacer(),
+          TextButton(onPressed: onTap, child: Text(file == null ? 'UPLOAD' : 'CHANGE', style: const TextStyle(color: Color(0xFF9333EA), fontWeight: FontWeight.w900))),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green));
+  }
+
+  void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        title: const Text("Submitted Successfully"),
-        content: const Text("Your profile is under review."),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Application Sent"),
+        content: const Text("Thank you for joining NearFix! Our team will review your documents and verify your profile within 24-48 hours."),
         actions: [
-          TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _resetForm();
-              },
-              child: const Text("OK")
-          )
+          TextButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("GOT IT", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9333EA)))),
         ],
       ),
     );
@@ -87,215 +291,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
       });
     }
   }
+}
 
-  Future<void> _submitEnrollment() async {
-    if (_idFront == null || _profilePhoto == null || _nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Missing required fields!")));
-      return;
-    }
+// Simple Custom Button to match your UI
+class SliverButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onPressed;
+  final String text;
 
-    setState(() => _isLoading = true);
-
-    try {
-      var uri = Uri.parse('https://nonregimented-ably-amare.ngrok-free.dev/nearfix/register.php');
-      var request = http.MultipartRequest('POST', uri);
-
-      request.headers.addAll({
-        'ngrok-skip-browser-warning': 'true',
-        'Accept': 'application/json',
-      });
-
-      request.fields['full_name'] = _nameController.text;
-      request.fields['mobile'] = _phoneController.text;
-      request.fields['email'] = _emailController.text;
-      request.fields['passcode'] = _passcodeController.text;
-      request.fields['job_title'] = _jobController.text;
-      request.fields['experience'] = _expController.text;
-      request.fields['about_me'] = _aboutController.text; // 3. Added to multipart request
-      request.fields['city'] = _selectedCity ?? "";
-      request.fields['id_type'] = _selectedIdentity ?? "";
-      request.fields['id_num'] = _idNumController.text;
-      request.fields['bank'] = _bankController.text;
-      request.fields['account'] = _accController.text;
-      request.fields['ifsc'] = _ifscController.text;
-
-      request.files.add(await http.MultipartFile.fromPath('id_front', _idFront!.path));
-      if (_idBack != null) request.files.add(await http.MultipartFile.fromPath('id_back', _idBack!.path));
-      request.files.add(await http.MultipartFile.fromPath('profile_photo', _profilePhoto!.path));
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        final result = jsonDecode(response.body);
-        if (result['status'] == 'success') {
-          _showSuccess();
-        } else {
-          _showError(result['message']);
-        }
-      } else {
-        _showError("Server Error: ${response.statusCode}");
-      }
-    } catch (e) {
-      _showError("Connection failed: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
+  const SliverButton({super.key, required this.isLoading, required this.onPressed, required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(backgroundColor: Colors.white, elevation: 0,
-          leading: const BackButton(color: Colors.black)),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Join ServicePro', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                const Text('COMPLETE YOUR PROFESSIONAL PROFILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-
-                _buildSectionLabel('PERSONAL CREDENTIALS'),
-                _buildTextField('Full Legal Name', _nameController),
-                _buildTextField('Mobile Number', _phoneController, type: TextInputType.phone),
-                _buildTextField('Email Address', _emailController, type: TextInputType.emailAddress),
-                _buildTextField('Set Passcode', _passcodeController, isPass: true),
-
-                _buildSectionLabel('EXPERTISE & REACH'),
-                _buildTextField('Job Title', _jobController),
-                _buildTextField('Years of Experience', _expController, type: TextInputType.number),
-                // 4. Added the "About Me" UI Field here
-                _buildTextField(
-                    'About Me (Skills, Specialization, etc.)',
-                    _aboutController,
-                    maxLines: 3, // Multi-line support
-                    type: TextInputType.multiline
-                ),
-                _buildDropdown('Select City', _selectedCity, _cities, (val) => setState(() => _selectedCity = val)),
-
-                _buildSectionLabel('GOVERNMENT IDENTITY'),
-                _buildDropdown('Select ID Type', _selectedIdentity, _identityTypes, (val) => setState(() => _selectedIdentity = val)),
-                _buildTextField('ID Number', _idNumController),
-
-                Row(
-                  children: [
-                    Expanded(child: _buildUploadBox('UPLOAD FRONT', _idFront, () => _pickImage('front'))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildUploadBox('UPLOAD BACK', _idBack, () => _pickImage('back'))),
-                  ],
-                ),
-
-                _buildSectionLabel('PAYOUT CONFIGURATION'),
-                _buildTextField('Bank Name', _bankController),
-                _buildTextField('Account Number', _accController),
-                _buildTextField('IFSC Code', _ifscController),
-
-                _buildSectionLabel('PROFILE PHOTO'),
-                _buildPhotoTile(_profilePhoto, () => _pickImage('profile')),
-
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: 58,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submitEnrollment,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9333EA),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('SUBMIT ENROLLMENT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ],
+    return SizedBox(
+      width: double.infinity,
+      height: 58,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF9333EA),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: isLoading
+            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+            : Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
-
-  // --- UI HELPERS ---
-  Widget _buildSectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(top: 24, bottom: 12),
-    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-  );
-
-  // Updated Helper to support maxLines for About Me
-  Widget _buildTextField(String hint, TextEditingController controller, {TextInputType type = TextInputType.text, bool isPass = false, int maxLines = 1}) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: TextField(
-      controller: controller,
-      keyboardType: type,
-      obscureText: isPass,
-      maxLines: maxLines, // Use the maxLines parameter
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF9FAFB),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF1F5F9))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF9333EA))),
-      ),
-    ),
-  );
-
-  Widget _buildUploadBox(String label, File? file, VoidCallback onTap) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      height: 90,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        image: file != null ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-      ),
-      child: file == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.add_a_photo_outlined, size: 24, color: Colors.black26),
-        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black38)),
-      ]) : null,
-    ),
-  );
-
-  Widget _buildPhotoTile(File? file, VoidCallback onTap) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFF1F5F9))),
-    child: Row(children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: file != null
-            ? Image.file(file, width: 40, height: 40, fit: BoxFit.cover)
-            : const Icon(Icons.account_box_outlined, color: Colors.black26, size: 40),
-      ),
-      const SizedBox(width: 12),
-      const Text('PASSPORT SIZE PHOTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black45)),
-      const Spacer(),
-      TextButton(onPressed: onTap, child: Text(file == null ? 'UPLOAD' : 'CHANGE', style: const TextStyle(color: Color(0xFF9333EA), fontWeight: FontWeight.w900))),
-    ]),
-  );
-
-  Widget _buildDropdown(String hint, String? value, List<String> items, Function(String?) onChanged) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: DropdownButtonFormField<String>(
-      value: value,
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-      onChanged: onChanged,
-      style: const TextStyle(color: Colors.black),
-      decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: const Color(0xFFF9FAFB),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
-      ),
-    ),
-  );
 }

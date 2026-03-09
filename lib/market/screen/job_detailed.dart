@@ -387,6 +387,7 @@ class JobDetailScreen extends StatelessWidget {
           ),
         ),
       ),
+
     );
   }
 

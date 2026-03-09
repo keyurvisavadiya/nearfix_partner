@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:nearfix_partner/profile/ledger_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/authentication/login_screen.dart';
 
@@ -118,7 +119,9 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                 Text('$_totalMissions Total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ]),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=>LedgerScreen()));
+                },
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1C1E), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: const Text('VIEW LEDGER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               )

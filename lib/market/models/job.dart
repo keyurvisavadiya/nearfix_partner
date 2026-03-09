@@ -1,8 +1,10 @@
 enum JobStatus { available, active, completed, pending, Confirmed }
 
 class Job {
-  final int id; // Booking ID
-  final int customerId; // User ID for Chat
+  final int id;
+  final int customerId;
+  final String customerPhone;
+  final String? customerImage; // <--- ADDED THIS
   final String type;
   final String location;
   final String rate;
@@ -15,6 +17,8 @@ class Job {
   Job({
     required this.id,
     required this.customerId,
+    required this.customerPhone,
+    this.customerImage, // <--- ADDED THIS
     required this.type,
     required this.location,
     required this.rate,
@@ -26,9 +30,22 @@ class Job {
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
+    // Replace with your actual server URL where images are stored
+    const String baseUrl = "https://your-ngrok-url.ngrok-free.dev/nearfix/uploads/";
+
+    String? rawImage = json['profile_image']?.toString();
+    String? fullImageUrl;
+
+    if (rawImage != null && rawImage.isNotEmpty) {
+      // If the DB already has a full URL, use it; otherwise, append the base
+      fullImageUrl = rawImage.startsWith('http') ? rawImage : "$baseUrl$rawImage";
+    }
+
     return Job(
       id: int.parse(json['id'].toString()),
-      customerId: int.parse(json['user_id'].toString()), // From the PHP 'user_id'
+      customerId: int.parse(json['user_id'].toString()),
+      customerPhone: (json['phone'] ?? '').toString(),
+      customerImage: fullImageUrl, // <--- MAPPED HERE
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
       location: json['address'] ?? 'No Address',
       rate: "₹${json['amount'] ?? '0'}",

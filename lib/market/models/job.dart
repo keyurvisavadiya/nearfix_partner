@@ -63,7 +63,7 @@ class Job {
     if (status == null) return JobStatus.available;
     String s = status.toLowerCase();
 
-    // This ensures both 'active' and 'confirmed' map to the Active Mission card
+    //  ensures both 'active' and 'confirmed' map to the Active Mission card
     if (s == 'confirmed' || s == 'active' || s == 'on the way') {
       return JobStatus.active;
     }

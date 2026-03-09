@@ -27,7 +27,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
       final prefs = await SharedPreferences.getInstance();
       final int providerId = prefs.getInt('provider_id') ?? 0;
 
-      // Replace with your current Ngrok/Base URL
       final url = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
 
       final response = await http.get(Uri.parse(url), headers: {"ngrok-skip-browser-warning": "true"});

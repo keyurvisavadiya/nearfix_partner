@@ -293,7 +293,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-// Simple Custom Button to match your UI
 class SliverButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;

@@ -88,7 +88,7 @@ class JobCard extends StatelessWidget {
           const Divider(height: 1, thickness: 1, color: AppColors.divider),
           const SizedBox(height: 12),
 
-          // ── Customer + Buttons ───────────────────────────────────
+          // ── Customer + Buttons
           Row(
             children: [
               Text(

@@ -45,8 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setInt('provider_id', int.parse(result['id'].toString()));
           await prefs.setString('provider_name', result['user_name'] ?? "Partner");
 
-          // CRITICAL FIX: Save the path coming from your PHP
-          // Since DB has "uploads/filename.jpg", we save it as is.
           await prefs.setString('profile_pic', result['profile_photo_path'] ?? "");
 
           await prefs.setString('category', result['specialty'] ?? "");

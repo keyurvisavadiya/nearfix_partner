@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shimmer/shimmer.dart'; // REQUIRED
+import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart'; // REQUIRED
 import '../../chat_screen/chatscreen.dart';
 import '../models/job.dart';
 import '../models/app_colors.dart';
@@ -18,13 +19,26 @@ class JobDetailScreen extends StatelessWidget {
     required this.onFinish,
   });
 
+  // --- PHONE DIALER LOGIC ---
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    } else {
+      debugPrint("Could not launch dialer for $phoneNumber");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          // ── App Bar ───────────────────────────────────────────────
+          // ── App Bar
           Container(
             color: Colors.white,
             child: SafeArea(
@@ -75,8 +89,6 @@ class JobDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-
-                  // Category chip + rate
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -136,37 +148,21 @@ class JobDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // ── Professional Customer Card ──────────────────────────
+                  // ── Customer Card
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20), // More rounded
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.borderGrey),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        )
-                      ],
                     ),
                     child: Row(
                       children: [
-                        // Professional Avatar Widget
                         Container(
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
@@ -175,14 +171,6 @@ class JobDetailScreen extends StatelessWidget {
                               job.customerImage!,
                               fit: BoxFit.cover,
                               headers: const {"ngrok-skip-browser-warning": "69420"},
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Shimmer.fromColors(
-                                  baseColor: Colors.grey[200]!,
-                                  highlightColor: Colors.grey[100]!,
-                                  child: Container(color: Colors.white),
-                                );
-                              },
                               errorBuilder: (context, error, stackTrace) => _buildProfessionalFallback(),
                             )
                                 : _buildProfessionalFallback(),
@@ -208,14 +196,13 @@ class JobDetailScreen extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.grey,
-                                  letterSpacing: 0.4,
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        // Action Buttons
+                        // ACTION BUTTONS
                         Row(
                           children: [
                             GestureDetector(
@@ -238,7 +225,11 @@ class JobDetailScreen extends StatelessWidget {
                               child: _iconButton(Icons.chat_bubble_rounded, AppColors.purple, AppColors.purple.withOpacity(0.1)),
                             ),
                             const SizedBox(width: 8),
-                            _iconButton(Icons.phone_rounded, Colors.white, AppColors.green),
+                            // --- UPDATED CALL BUTTON ---
+                            GestureDetector(
+                              onTap: () => _makePhoneCall(job.customerPhone),
+                              child: _iconButton(Icons.phone_rounded, Colors.white, AppColors.green),
+                            ),
                           ],
                         ),
                       ],
@@ -284,7 +275,7 @@ class JobDetailScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Bottom CTA ────────────────────────────────────────────
+          // ── Bottom CTA
           Container(
             color: Colors.white,
             padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + MediaQuery.of(context).padding.bottom),
@@ -297,13 +288,7 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _buildProfessionalFallback() {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.purple.withOpacity(0.8), AppColors.purple],
-        ),
-      ),
+      decoration: const BoxDecoration(color: AppColors.purple),
       child: Center(
         child: Text(
           job.customer.isNotEmpty ? job.customer.substring(0, 1).toUpperCase() : '?',

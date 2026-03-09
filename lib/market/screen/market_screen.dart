@@ -206,7 +206,6 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
       color: AppColors.purple,
       child: list.isEmpty
           ? ListView(
-        // physics ensures you can pull even when the list is empty
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(

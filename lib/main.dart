@@ -44,9 +44,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _selectedIndex = 0;
 
-  // Define screens here. Notice HomeScreen no longer needs parameters passed from here.
   final List<Widget> _screens = [
-    const HomeScreen(), // Now fully dynamic inside its own state
+    const HomeScreen(),
     const MarketScreen(),
     const ChatScreen(),
     const ProviderProfileScreen(),
@@ -55,7 +54,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack( // Using IndexedStack preserves the scroll state of your screens
+      body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),

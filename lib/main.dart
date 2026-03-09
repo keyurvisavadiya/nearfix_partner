@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:nearfix_partner/chat_screen/chat_screen_tile.dart';
 import 'package:nearfix_partner/home_screen/home_screen.dart';
 import 'package:nearfix_partner/market/screen/market_screen.dart';
-import 'package:nearfix_partner/profile/profile_screen.dart';
+import 'package:nearfix_partner/profile/profile_screen.dart' hide HomeScreen;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // --- 1. THE SSL BYPASS ---

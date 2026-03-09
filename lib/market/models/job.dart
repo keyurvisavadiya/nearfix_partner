@@ -32,22 +32,18 @@ class Job {
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
-    // 1. MUST USE YOUR IP (e.g., 192.168.1.10) instead of localhost
-    // 2. Ensure the path matches where your 'uploads' folder is
     const String baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/";
 
     String? rawImage = json['profile_image']?.toString();
     String? fullImageUrl;
 
-    // Filter out null strings and empty values
     if (rawImage != null && rawImage.isNotEmpty && rawImage != "null") {
       fullImageUrl = rawImage.startsWith('http') ? rawImage : "$baseUrl$rawImage";
-      debugPrint("Constructed Image URL: $fullImageUrl");
     }
 
     return Job(
       id: int.parse(json['id'].toString()),
-      customerId: int.parse(json['user_id'].toString()),
+      customerId: int.parse(json['user_id']?.toString() ?? '0'),
       customerPhone: (json['phone'] ?? '').toString(),
       customerImage: fullImageUrl,
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
@@ -59,16 +55,22 @@ class Job {
       detailedDescription: (json['notes'] != null && json['notes'].toString().isNotEmpty)
           ? json['notes']
           : "No additional notes provided.",
-      status: _parseStatus(json['status']),
+      status: _parseStatus(json['status']?.toString()),
     );
   }
 
   static JobStatus _parseStatus(String? status) {
     if (status == null) return JobStatus.available;
     String s = status.toLowerCase();
-    if (s == 'pending') return JobStatus.available;
-    if (s == 'confirmed') return JobStatus.active;
-    if (s == 'completed') return JobStatus.completed;
+
+    // This ensures both 'active' and 'confirmed' map to the Active Mission card
+    if (s == 'confirmed' || s == 'active' || s == 'on the way') {
+      return JobStatus.active;
+    }
+    if (s == 'completed' || s == 'finish') {
+      return JobStatus.completed;
+    }
+    if (s == 'pending') return JobStatus.pending;
     return JobStatus.available;
   }
 }

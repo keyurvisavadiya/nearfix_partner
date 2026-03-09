@@ -1,10 +1,12 @@
+import 'package:flutter/foundation.dart';
+
 enum JobStatus { available, active, completed, pending, Confirmed }
 
 class Job {
   final int id;
   final int customerId;
   final String customerPhone;
-  final String? customerImage; // <--- ADDED THIS
+  final String? customerImage;
   final String type;
   final String location;
   final String rate;
@@ -18,7 +20,7 @@ class Job {
     required this.id,
     required this.customerId,
     required this.customerPhone,
-    this.customerImage, // <--- ADDED THIS
+    this.customerImage,
     required this.type,
     required this.location,
     required this.rate,
@@ -30,22 +32,24 @@ class Job {
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
-    // Replace with your actual server URL where images are stored
-    const String baseUrl = "https://your-ngrok-url.ngrok-free.dev/nearfix/uploads/";
+    // 1. MUST USE YOUR IP (e.g., 192.168.1.10) instead of localhost
+    // 2. Ensure the path matches where your 'uploads' folder is
+    const String baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/";
 
     String? rawImage = json['profile_image']?.toString();
     String? fullImageUrl;
 
-    if (rawImage != null && rawImage.isNotEmpty) {
-      // If the DB already has a full URL, use it; otherwise, append the base
+    // Filter out null strings and empty values
+    if (rawImage != null && rawImage.isNotEmpty && rawImage != "null") {
       fullImageUrl = rawImage.startsWith('http') ? rawImage : "$baseUrl$rawImage";
+      debugPrint("Constructed Image URL: $fullImageUrl");
     }
 
     return Job(
       id: int.parse(json['id'].toString()),
       customerId: int.parse(json['user_id'].toString()),
       customerPhone: (json['phone'] ?? '').toString(),
-      customerImage: fullImageUrl, // <--- MAPPED HERE
+      customerImage: fullImageUrl,
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
       location: json['address'] ?? 'No Address',
       rate: "₹${json['amount'] ?? '0'}",

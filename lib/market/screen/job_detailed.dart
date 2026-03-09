@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart'; // REQUIRED
 import '../../chat_screen/chatscreen.dart';
 import '../models/job.dart';
 import '../models/app_colors.dart';
@@ -29,10 +30,7 @@ class JobDetailScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -70,7 +68,6 @@ class JobDetailScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Scrollable Body ───────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -84,10 +81,7 @@ class JobDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: AppColors.purpleBg,
                           borderRadius: BorderRadius.circular(6),
@@ -130,8 +124,6 @@ class JobDetailScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 10),
-
-                  // Job title
                   Text(
                     job.type.toUpperCase(),
                     style: const TextStyle(
@@ -144,32 +136,56 @@ class JobDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Customer card
+                  // ── Professional Customer Card ──────────────────────────
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20), // More rounded
                       border: Border.all(color: AppColors.borderGrey),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
                     ),
                     child: Row(
                       children: [
-                        // Avatar
+                        // Professional Avatar Widget
                         Container(
-                          width: 52,
-                          height: 52,
+                          width: 56,
+                          height: 56,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8E0F5),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: Center(
-                            child: Text(
-                              _avatarEmoji(job.customer),
-                              style: const TextStyle(fontSize: 28),
-                            ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: (job.customerImage != null && job.customerImage!.isNotEmpty)
+                                ? Image.network(
+                              job.customerImage!,
+                              fit: BoxFit.cover,
+                              headers: const {"ngrok-skip-browser-warning": "69420"},
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Shimmer.fromColors(
+                                  baseColor: Colors.grey[200]!,
+                                  highlightColor: Colors.grey[100]!,
+                                  child: Container(color: Colors.white),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) => _buildProfessionalFallback(),
+                            )
+                                : _buildProfessionalFallback(),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -199,10 +215,9 @@ class JobDetailScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Action Buttons Row
+                        // Action Buttons
                         Row(
                           children: [
-                            // MESSAGE BUTTON
                             GestureDetector(
                               onTap: () async {
                                 final prefs = await SharedPreferences.getInstance();
@@ -213,42 +228,17 @@ class JobDetailScreen extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (context) => ProviderChatMessageScreen(
                                         currentUserId: myId,
-                                        peerId: job.customerId, // Uses the ID from our model
+                                        peerId: job.customerId,
                                         peerName: job.customer,
                                       ),
                                     ),
                                   );
                                 }
                               },
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppColors.purple.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.chat_bubble_rounded,
-                                  color: AppColors.purple,
-                                  size: 20,
-                                ),
-                              ),
+                              child: _iconButton(Icons.chat_bubble_rounded, AppColors.purple, AppColors.purple.withOpacity(0.1)),
                             ),
                             const SizedBox(width: 8),
-                            // CALL BUTTON
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: AppColors.green,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.phone_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
+                            _iconButton(Icons.phone_rounded, Colors.white, AppColors.green),
                           ],
                         ),
                       ],
@@ -256,32 +246,18 @@ class JobDetailScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 24),
-
-                  // Destination
-                  SectionLabel(
-                    icon: Icons.location_on_outlined,
-                    label: 'DESTINATION',
-                  ),
+                  SectionLabel(icon: Icons.location_on_outlined, label: 'DESTINATION'),
                   const SizedBox(height: 6),
                   Padding(
                     padding: const EdgeInsets.only(left: 22),
                     child: Text(
                       job.location,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.dark,
-                      ),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.dark),
                     ),
                   ),
 
                   const SizedBox(height: 22),
-
-                  // Problem statement
-                  SectionLabel(
-                    icon: Icons.article_outlined,
-                    label: 'PROBLEM STATEMENT',
-                  ),
+                  SectionLabel(icon: Icons.article_outlined, label: 'PROBLEM STATEMENT'),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -302,7 +278,6 @@ class JobDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 120),
                 ],
               ),
@@ -312,12 +287,7 @@ class JobDetailScreen extends StatelessWidget {
           // ── Bottom CTA ────────────────────────────────────────────
           Container(
             color: Colors.white,
-            padding: EdgeInsets.fromLTRB(
-              20,
-              14,
-              20,
-              14 + MediaQuery.of(context).padding.bottom,
-            ),
+            padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + MediaQuery.of(context).padding.bottom),
             child: _buildCTA(),
           ),
         ],
@@ -325,74 +295,64 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildProfessionalFallback() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.purple.withOpacity(0.8), AppColors.purple],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          job.customer.isNotEmpty ? job.customer.substring(0, 1).toUpperCase() : '?',
+          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconButton(IconData icon, Color iconColor, Color bgColor) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: iconColor, size: 20),
+    );
+  }
+
   Widget _buildCTA() {
     switch (job.status) {
       case JobStatus.available:
       case JobStatus.pending:
-        return _ctaButton(
-          label: 'ACCEPT JOB',
-          color: AppColors.dark,
-          onTap: onAccept,
-        );
-
+        return _ctaButton(label: 'ACCEPT JOB', color: AppColors.dark, onTap: onAccept);
       case JobStatus.active:
       case JobStatus.Confirmed:
-        return _ctaButton(
-          label: 'FINISH JOB',
-          color: AppColors.green,
-          onTap: onFinish,
-        );
-
+        return _ctaButton(label: 'FINISH JOB', color: AppColors.green, onTap: onFinish);
       case JobStatus.completed:
         return const Center(
-          child: Text(
-            'MISSION ACCOMPLISHED',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: AppColors.green,
-              letterSpacing: 1,
-            ),
-          ),
+          child: Text('MISSION ACCOMPLISHED', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.green, letterSpacing: 1)),
         );
-
       default:
         return const SizedBox.shrink();
     }
   }
 
-  Widget _ctaButton({
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _ctaButton({required String label, required Color color, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
         child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 2,
-            ),
-          ),
+          child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
         ),
       ),
-
     );
-  }
-
-  String _avatarEmoji(String name) {
-    const emojis = ['🧑', '👩', '👨', '🧔', '👱'];
-    return emojis[name.codeUnitAt(0) % emojis.length];
   }
 }

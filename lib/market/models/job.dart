@@ -13,7 +13,6 @@ class Job {
   final String category;
   final String customer;
   final String customerRating;
-
   final String detailedDescription;
   JobStatus status;
 

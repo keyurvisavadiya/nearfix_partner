@@ -17,31 +17,18 @@ class ActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (job.status) {
-    // Group available and pending to show the ACCEPT button
+    // Both will now work because 'pending' is in the enum
       case JobStatus.available:
       case JobStatus.pending:
         return _pill('ACCEPT', AppColors.purple, () => onAccept(job));
 
-    // Group active and Confirmed to show the MARK DONE button
       case JobStatus.active:
       case JobStatus.Confirmed:
         return _pill('MARK DONE', AppColors.green, () => onFinish(job));
 
       case JobStatus.completed:
-        return const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            'FINISHED',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.green,
-              letterSpacing: 0.4,
-            ),
-          ),
-        );
+        return const Text('FINISHED', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.bold));
 
-    // Added a default return to ensure the switch is always exhaustive
       default:
         return const SizedBox.shrink();
     }
@@ -52,19 +39,8 @@ class ActionPill extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: 0.4,
-          ),
-        ),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(30)),
+        child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w800)),
       ),
     );
   }

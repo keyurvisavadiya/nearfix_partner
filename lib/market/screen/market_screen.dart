@@ -96,14 +96,22 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
 
   List<Job> _getJobs(JobStatus status) {
     if (status == JobStatus.available) {
-      return _jobs.where((j) => j.status == JobStatus.available).toList();
+      // ✅ FIX: Include both 'available' and 'pending' in the first tab
+      return _jobs.where((j) =>
+      j.status == JobStatus.available ||
+          j.status == JobStatus.pending
+      ).toList();
     } else if (status == JobStatus.active) {
-      return _jobs.where((j) => j.status == JobStatus.active).toList();
+      // ✅ FIX: Include both 'active' and 'Confirmed' in the second tab
+      return _jobs.where((j) =>
+      j.status == JobStatus.active ||
+          j.status == JobStatus.Confirmed
+      ).toList();
     } else {
+      // 'completed' tab
       return _jobs.where((j) => j.status == JobStatus.completed).toList();
     }
   }
-
   void _acceptJob(Job job) => _updateStatusInDb(job, 'Confirmed');
 
   void _finishJob(Job job) => _updateStatusInDb(job, 'completed');

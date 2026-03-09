@@ -315,13 +315,17 @@ class JobDetailScreen extends StatelessWidget {
       case JobStatus.available:
       case JobStatus.pending:
         return _ctaButton(label: 'ACCEPT JOB', color: AppColors.dark, onTap: onAccept);
+
       case JobStatus.active:
       case JobStatus.Confirmed:
         return _ctaButton(label: 'FINISH JOB', color: AppColors.green, onTap: onFinish);
+
       case JobStatus.completed:
         return const Center(
-          child: Text('MISSION ACCOMPLISHED', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.green, letterSpacing: 1)),
+            child: Text('MISSION ACCOMPLISHED',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.green))
         );
+
       default:
         return const SizedBox.shrink();
     }

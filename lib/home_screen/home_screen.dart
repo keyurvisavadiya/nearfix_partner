@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nearfix_partner/market/screen/market_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nearfix_partner/market/models/job.dart';
+import 'package:nearfix_partner/market/screen/market_screen.dart';
+import '../market/screen/job_detailed.dart'; // Ensure this path is correct
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,10 +14,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // --- 1. DYNAMIC VARIABLES ---
-  String _userName = "Loading...";
-  String _jobTitle = "PROFESSIONAL";
-  int _totalCompletedJobs = 0; // The true total counter
+  // --- MODERN SLATE PALETTE ---
+  final Color primaryColor = const Color(0xFF6366F1);
+  final Color slate900 = const Color(0xFF0F172A);
+  final Color slate700 = const Color(0xFF334155);
+  final Color slate500 = const Color(0xFF64748B);
+  final Color slate400 = const Color(0xFF94A3B8);
+  final Color slate100 = const Color(0xFFF1F5F9);
+  final Color emerald = const Color(0xFF10B981);
+  final Color amber = const Color(0xFFF59E0B);
+
+  String? _profileImageUrl;
+  String _userName = "Partner";
+  int _totalCompletedJobs = 0;
   List<dynamic> _recentMissions = [];
   Map<String, dynamic>? _priorityMission;
   bool _isLoading = true;
@@ -23,24 +34,76 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfileAndData();
+    _loadDashboardData();
   }
 
-  // --- 2. DATA LOADING LOGIC ---
-  Future<void> _loadProfileAndData() async {
-    final prefs = await SharedPreferences.getInstance();
+  // --- API STATUS UPDATE (SYNCHRONIZED WITH PHP) ---
+  Future<void> _handleStatusUpdate(int jobId, String newStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int providerId = prefs.getInt('provider_id') ?? 0;
 
-    // Load local profile data
+      final response = await http.post(
+        Uri.parse("https://nonregimented-ably-amare.ngrok-free.dev/nearfix/update_job_status.php"),
+        body: {
+          'job_id': jobId.toString(),
+          'status': newStatus,
+          'provider_id': providerId.toString(), // Sent for PHP bind_param
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final res = json.decode(response.body);
+        if (res['success']) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Job $newStatus successfully!"),
+                backgroundColor: newStatus == 'completed' ? emerald : primaryColor,
+              ),
+            );
+
+            // Navigate back and refresh
+            if (Navigator.canPop(context)) Navigator.pop(context);
+            _loadDashboardData();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Update Error: $e");
+    }
+  }
+
+  // --- NAVIGATION ---
+  void _onJobTap(Map<String, dynamic> jobData) {
+    final jobModel = Job.fromJson(jobData);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => JobDetailScreen(
+          job: jobModel,
+          // 'Confirmed' triggers the provider_id update in your PHP
+          onAccept: () => _handleStatusUpdate(jobModel.id, 'Confirmed'),
+          onFinish: () => _handleStatusUpdate(jobModel.id, 'completed'),
+        ),
+      ),
+    ).then((_) => _loadDashboardData());
+  }
+
+  // --- DATA FETCHING ---
+  Future<void> _loadDashboardData() async {
+    final prefs = await SharedPreferences.getInstance();
+    int providerId = prefs.getInt('provider_id') ?? 0;
+    const String imageBaseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/uploads/";
+
     setState(() {
       _userName = prefs.getString('provider_name') ?? "Partner";
-      _jobTitle = prefs.getString('category') ?? "Professional";
+      String? rawImage = prefs.getString('profile_pic');
+      if (rawImage != null && rawImage.isNotEmpty && rawImage != "null") {
+        _profileImageUrl = "$imageBaseUrl${rawImage.replaceAll('uploads/', '')}";
+      }
     });
 
-    // Fetch remote job data
-    await _fetchDashboardData(prefs.getInt('provider_id') ?? 0);
-  }
-
-  Future<void> _fetchDashboardData(int providerId) async {
     try {
       final response = await http.get(
         Uri.parse("https://nonregimented-ably-amare.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
@@ -51,31 +114,23 @@ class _HomeScreenState extends State<HomeScreen> {
         final decoded = json.decode(response.body);
         if (decoded['success']) {
           List<dynamic> allJobs = decoded['data'];
-
           setState(() {
-            // --- THE FIX: Calculate total COMPLETED from the full dataset ---
-            _totalCompletedJobs = allJobs.where((job) {
-              String status = job['status']?.toString().toLowerCase() ?? "";
-              return status == 'completed' || status == 'finish';
-            }).length;
+            _totalCompletedJobs = allJobs.where((j) =>
+                ['completed', 'finish'].contains(j['status']?.toString().toLowerCase())).length;
 
-            // Find Priority Mission (First one that is Active or Confirmed)
             _priorityMission = allJobs.firstWhere(
-                  (j) {
-                String s = j['status']?.toString().toLowerCase() ?? "";
-                return s == 'confirmed' || s == 'active';
-              },
+                  (j) => ['active', 'confirmed'].contains(j['status']?.toString().toLowerCase()),
               orElse: () => null,
             );
 
-            // Recent Activity: Just show the 3 most recent items for UI neatness
-            _recentMissions = allJobs.take(3).toList();
+            _recentMissions = allJobs.where((j) =>
+            _priorityMission == null || j['id'].toString() != _priorityMission!['id'].toString()
+            ).take(5).toList();
             _isLoading = false;
           });
         }
       }
     } catch (e) {
-      debugPrint("Home Data Error: $e");
       setState(() => _isLoading = false);
     }
   }
@@ -83,214 +138,175 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadProfileAndData,
-          color: const Color(0xFF9333EA),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-
-                // --- PROFILE HEADER ---
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Color(0xFFF3F4F6),
-                      child: Icon(Icons.person, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_userName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                        Text(
-                          _jobTitle.toUpperCase(),
-                          style: TextStyle(
-                              color: Colors.purple.shade700,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              letterSpacing: 1
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.notifications_none_rounded, color: Colors.grey),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // --- STATS CARDS ---
-                Row(
-                  children: [
-                    // --- DYNAMIC TOTAL COMPLETED ---
-                    _buildStatCard("COMPLETED", "$_totalCompletedJobs", Colors.white),
-                    const SizedBox(width: 16),
-                    _buildStatCard("RATING", "4.9", Colors.white),
-                  ],
-                ),
-                const SizedBox(height: 40),
-
-                // --- PRIORITY MISSION ---
-                const Text("PRIORITY MISSION",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, color: Colors.black87)
-                ),
-                const SizedBox(height: 16),
-
-                if (_priorityMission != null)
-                  _buildPriorityCard(_priorityMission!)
-                else if (!_isLoading)
-                  _buildEmptyState("No active missions at the moment"),
-
-                const SizedBox(height: 40),
-
-                // --- RECENT ACTIVITY ---
-                InkWell(
-                  // Use () => or () {} to define the callback function
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MarketScreen()),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0), // Added padding for better touch target
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                            "RECENT ACTIVITY",
-                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)
-                        ),
-                        Text(
-                            "VIEW ALL",
-                            style: TextStyle(color: Colors.purple.shade700, fontWeight: FontWeight.bold, fontSize: 10)
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (_recentMissions.isEmpty && !_isLoading)
-                  _buildEmptyState("No recent activity found"),
-
-                // List the recent missions dynamically
-                ..._recentMissions.map((job) => _buildActivityTile(
-                    job['service_name'] ?? "Job",
-                    job['status'] ?? "Pending"
-                )).toList(),
-
-                const SizedBox(height: 20),
-              ],
+      backgroundColor: slate100,
+      body: RefreshIndicator(
+        onRefresh: _loadDashboardData,
+        child: CustomScrollView(
+          slivers: [
+            _buildHeader(),
+            SliverPadding(
+              padding: const EdgeInsets.all(24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildHeroStats(),
+                  const SizedBox(height: 32),
+                  _rowHeader("Active Mission", null),
+                  const SizedBox(height: 16),
+                  _buildPriorityCard(),
+                  const SizedBox(height: 32),
+                  _rowHeader("Recent Activity", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketScreen()));
+                  }),
+                  const SizedBox(height: 16),
+                  if (_isLoading) const Center(child: LinearProgressIndicator()),
+                  ..._recentMissions.map((job) => _buildActivityTile(job)).toList(),
+                  const SizedBox(height: 40),
+                ]),
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- UI COMPONENTS ---
-
-  Widget _buildPriorityCard(Map<String, dynamic> job) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.purple.shade100),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.access_time_filled, color: Color(0xFF9333EA), size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(job['service_name'] ?? "Maintenance", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(
-                    job['address'] ?? "Location Hidden",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.bold)
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text("₹${job['amount']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFF3F4F6)),
-        ),
-        child: Column(
-          children: [
-            Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActivityTile(String title, String status) {
-    bool isDone = status.toLowerCase() == 'completed' || status.toLowerCase() == 'finish';
+  // --- UI WIDGETS ---
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildHeader() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 26, backgroundColor: slate100,
+              backgroundImage: _profileImageUrl != null ? NetworkImage(_profileImageUrl!) : null,
+              child: _profileImageUrl == null ? Icon(Icons.person, color: primaryColor) : null,
+            ),
+            const SizedBox(width: 16),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("Welcome back,", style: TextStyle(color: slate500, fontSize: 13)),
+              Text(_userName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: slate900)),
+            ]),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildHeroStats() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: slate900, borderRadius: BorderRadius.circular(32)),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-              isDone ? Icons.check_circle : Icons.pending_actions_rounded,
-              color: isDone ? const Color(0xFF10B981) : Colors.orange,
-              size: 20
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              Text(status.toUpperCase(), style: const TextStyle(color: Colors.grey, fontSize: 10)),
-            ],
-          ),
-          const Spacer(),
-          const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+          _statItem("TOTAL JOBS", "$_totalCompletedJobs", Icons.assignment_turned_in_rounded),
+          _statItem("RATING", "4.9", Icons.stars_rounded),
+          _statItem("LEVEL", "Gold", Icons.workspace_premium_rounded),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(String message) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Center(
-        child: Text(
-          message,
-          style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+  Widget _statItem(String label, String value, IconData icon) => Column(children: [
+    Icon(icon, color: Colors.indigoAccent.shade100, size: 20),
+    const SizedBox(height: 8),
+    Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+    Text(label, style: TextStyle(color: slate400, fontSize: 10)),
+  ]);
+
+  Widget _buildPriorityCard() {
+    if (_priorityMission == null) {
+      return Container(
+          height: 100,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          child: Center(child: Text("Waiting for missions...", style: TextStyle(color: slate400)))
+      );
+    }
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(28),
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.05),
+      child: InkWell(
+        onTap: () => _onJobTap(_priorityMission!),
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                      child: Icon(Icons.flash_on_rounded, color: primaryColor)
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_priorityMission!['service_name'] ?? "Job", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: slate900)),
+                    Text(_priorityMission!['address'] ?? "No Location", style: TextStyle(color: slate500, fontSize: 12), maxLines: 1),
+                  ])),
+                  Text("₹${_priorityMission!['amount']}", style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 18)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                  height: 45,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(12)),
+                  child: const Text("View Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildActivityTile(Map<String, dynamic> job) {
+    bool isDone = ['completed', 'finish'].contains(job['status']?.toString().toLowerCase());
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => _onJobTap(job),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                    height: 48, width: 48,
+                    decoration: BoxDecoration(color: isDone ? emerald.withOpacity(0.1) : amber.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    child: Icon(isDone ? Icons.check_rounded : Icons.schedule_rounded, color: isDone ? emerald : amber)
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(job['service_name'] ?? "Job", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: slate900)),
+                  Text(job['status'].toString().toUpperCase(), style: TextStyle(color: isDone ? emerald : slate400, fontSize: 10, fontWeight: FontWeight.w800)),
+                ])),
+                Text("₹${job['amount']}", style: TextStyle(fontWeight: FontWeight.bold, color: slate700)),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _rowHeader(String t, VoidCallback? onTap) => Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(t, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: slate900)),
+      ]
+  );
 }

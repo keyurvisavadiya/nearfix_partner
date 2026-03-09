@@ -45,7 +45,8 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
       String myCategory = prefs.getString('category') ?? '';
 
       final response = await http.get(
-        Uri.parse("${_baseUrl}get_jobs.php?provider_id=$myId&category=$myCategory"),
+        Uri.parse(
+            "${_baseUrl}get_jobs.php?provider_id=$myId&category=$myCategory"),
         headers: {"ngrok-skip-browser-warning": "true"},
       ).timeout(const Duration(seconds: 10));
 
@@ -104,12 +105,14 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
   }
 
   void _acceptJob(Job job) => _updateStatusInDb(job, 'Confirmed');
+
   void _finishJob(Job job) => _updateStatusInDb(job, 'completed');
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center),
         backgroundColor: AppColors.dark,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -122,11 +125,18 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
   void _openDetail(Job job) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => JobDetailScreen(
-          job: job,
-          onAccept: () { _acceptJob(job); Navigator.pop(context); },
-          onFinish: () { _finishJob(job); Navigator.pop(context); },
-        ),
+        builder: (_) =>
+            JobDetailScreen(
+              job: job,
+              onAccept: () {
+                _acceptJob(job);
+                Navigator.pop(context);
+              },
+              onFinish: () {
+                _finishJob(job);
+                Navigator.pop(context);
+              },
+            ),
       ),
     );
   }
@@ -136,7 +146,8 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.purple))
+          ? const Center(
+          child: CircularProgressIndicator(color: AppColors.purple))
           : Column(
         children: [
           _buildHeader(),
@@ -163,7 +174,9 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
         child: Column(
           children: [
             const SizedBox(height: 14),
-            const Text('Market Place', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.dark)),
+            const Text('Market Place', style: TextStyle(fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.dark)),
             const SizedBox(height: 2),
             TabBar(
               controller: _tabController,
@@ -173,7 +186,11 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
               indicatorWeight: 2,
               indicatorSize: TabBarIndicatorSize.label,
               dividerColor: Colors.transparent,
-              tabs: const [Tab(text: 'AVAILABLE'), Tab(text: 'ACTIVE'), Tab(text: 'COMPLETED')],
+              tabs: const [
+                Tab(text: 'AVAILABLE'),
+                Tab(text: 'ACTIVE'),
+                Tab(text: 'COMPLETED')
+              ],
             ),
           ],
         ),
@@ -183,10 +200,28 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
 
   Widget _buildTabList(JobStatus status) {
     final list = _getJobs(status);
-    if (list.isEmpty) return const Center(child: Text("No jobs found", style: TextStyle(color: AppColors.grey)));
+
     return RefreshIndicator(
       onRefresh: _fetchJobs,
-      child: JobList(
+      color: AppColors.purple,
+      child: list.isEmpty
+          ? ListView(
+        // physics ensures you can pull even when the list is empty
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery
+                .of(context)
+                .size
+                .height * 0.6,
+            child: const Center(
+              child: Text(
+                  "No jobs found", style: TextStyle(color: AppColors.grey)),
+            ),
+          ),
+        ],
+      )
+          : JobList(
         jobs: list,
         onAccept: _acceptJob,
         onFinish: _finishJob,

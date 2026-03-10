@@ -1,13 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:nearfix_partner/authentication/login_screen.dart';
 import 'dart:io';
-import 'package:nearfix_partner/chat_screen/chat_screen_tile.dart';
-import 'package:nearfix_partner/home_screen/home_screen.dart';
-import 'package:nearfix_partner/market/screen/market_screen.dart';
-import 'package:nearfix_partner/profile/profile_screen.dart' hide HomeScreen;
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- 1. THE SSL BYPASS ---
+// Import your internal files
+import 'package:nearfix_partner/authentication/login_screen.dart';
+import 'package:nearfix_partner/home_screen/home_screen.dart';
+import 'package:nearfix_partner/market/screen/market_screen.dart';
+import 'package:nearfix_partner/chat_screen/chat_screen_tile.dart';
+import 'package:nearfix_partner/profile/profile_screen.dart' hide HomeScreen;
+
+import 'onboarding_screen/onboarding_screen.dart';
+
+// --- 1. SSL BYPASS (For development) ---
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -22,14 +26,28 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
-  // Retrieve saved ID to check if user is logged in
+  // Retrieve states
+  final bool onboardingSeen = prefs.getBool('onboarding_seen') ?? false;
   final int? providerId = prefs.getInt('provider_id');
+
+  // Logic to determine the starting screen
+  Widget initialScreen;
+
+  if (!onboardingSeen) {
+    // Brand new user
+    initialScreen = const OnboardingScreen();
+  } else if (providerId == null) {
+    // Has seen onboarding but is logged out
+    initialScreen = const LoginScreen();
+  } else {
+    // Logged in and seen onboarding
+    initialScreen = const MyApp();
+  }
 
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(useMaterial3: true), // Enable modern Material 3 styling
-    // If providerId exists, go to the Navigation Wrapper, else Login
-    home: providerId != null ? const MyApp() : const LoginScreen(),
+    theme: ThemeData(useMaterial3: true),
+    home: initialScreen,
   ));
 }
 
@@ -60,19 +78,13 @@ class _MyAppState extends State<MyApp> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _selectedIndex = index),
         backgroundColor: Colors.white,
         elevation: 10,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF9333EA),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-        unselectedLabelStyle: const TextStyle(fontSize: 10),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'HOME'),
           BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), label: 'MARKET'),

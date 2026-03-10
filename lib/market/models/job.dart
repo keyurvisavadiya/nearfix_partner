@@ -25,11 +25,23 @@ class Job {
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
+    // 1. Ensure this URL is your CURRENT active ngrok link
+    // 2. Do NOT put a slash at the very end if you're adding it manually below
+    const String baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix";
+
+    String? rawPath = json['profile_image']?.toString();
+    String? finalImageUrl;
+
+    if (rawPath != null && rawPath.isNotEmpty && rawPath != "null") {
+      // Logic: If rawPath starts with 'uploads', just add a single slash
+      finalImageUrl = "$baseUrl/$rawPath";
+    }
+
     return Job(
       id: int.tryParse(json['id'].toString()) ?? 0,
       customerId: int.tryParse(json['user_id']?.toString() ?? '0') ?? 0,
       customerPhone: (json['phone'] ?? '').toString(),
-      customerImage: json['profile_image'] != null ? "https://your-ngrok-url.dev/nearfix/${json['profile_image']}" : null,
+      customerImage: finalImageUrl, // Using the cleaned URL
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
       location: json['address'] ?? 'No Address',
       rate: "₹${json['amount'] ?? '0'}",

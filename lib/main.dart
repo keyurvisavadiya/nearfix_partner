@@ -82,7 +82,7 @@ class _MyAppState extends State<MyApp> {
         backgroundColor: Colors.white,
         elevation: 10,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF9333EA),
+        selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         items: const [

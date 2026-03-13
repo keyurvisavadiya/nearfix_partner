@@ -27,7 +27,7 @@ class Job {
   factory Job.fromJson(Map<String, dynamic> json) {
     // 1. Ensure this URL is your CURRENT active ngrok link
     // 2. Do NOT put a slash at the very end if you're adding it manually below
-    const String baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix";
+    const String baseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix";
 
     String? rawPath = json['profile_image']?.toString();
     String? finalImageUrl;

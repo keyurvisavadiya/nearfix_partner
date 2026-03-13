@@ -19,7 +19,7 @@ class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderSt
   List<Job> _jobs = [];
   bool _isLoading = true;
 
-  final String _baseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/";
+  final String _baseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/";
 
   @override
   void initState() {

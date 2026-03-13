@@ -44,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
       int providerId = prefs.getInt('provider_id') ?? 0;
 
       final response = await http.post(
-        Uri.parse("https://nonregimented-ably-amare.ngrok-free.dev/nearfix/update_job_status.php"),
+        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/update_job_status.php"),
         body: {
           'job_id': jobId.toString(),
           'status': newStatus,
@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadDashboardData() async {
     final prefs = await SharedPreferences.getInstance();
     int providerId = prefs.getInt('provider_id') ?? 0;
-    const String imageBaseUrl = "https://nonregimented-ably-amare.ngrok-free.dev/nearfix/uploads/";
+    const String imageBaseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/uploads/";
 
     setState(() {
       _userName = prefs.getString('provider_name') ?? "Partner";
@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse("https://nonregimented-ably-amare.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
+        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
 

@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nearfix_partner/services/location_service.dart';
 import 'package:nearfix_partner/market/models/job.dart';
 import 'package:nearfix_partner/market/screen/market_screen.dart';
-import '../market/screen/job_detailed.dart'; // Ensure this path is correct
+import '../market/screen/job_detailed.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +14,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  // --- GPS SERVICE ---
+  final ProviderLocationService _locationService = ProviderLocationService();
+  bool _isOnline = false;
+
   // --- MODERN SLATE PALETTE ---
   final Color primaryColor = const Color(0xFF6366F1);
   final Color slate900 = const Color(0xFF0F172A);
@@ -34,60 +39,49 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadDashboardData();
   }
 
-  // --- API STATUS UPDATE (SYNCHRONIZED WITH PHP) ---
-  Future<void> _handleStatusUpdate(int jobId, String newStatus) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      int providerId = prefs.getInt('provider_id') ?? 0;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _locationService.stopTracking();
+    super.dispose();
+  }
 
-      final response = await http.post(
-        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/update_job_status.php"),
-        body: {
-          'job_id': jobId.toString(),
-          'status': newStatus,
-          'provider_id': providerId.toString(), // Sent for PHP bind_param
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final res = json.decode(response.body);
-        if (res['success']) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Job $newStatus successfully!"),
-                backgroundColor: newStatus == 'completed' ? emerald : primaryColor,
-              ),
-            );
-
-            // Navigate back and refresh
-            if (Navigator.canPop(context)) Navigator.pop(context);
-            _loadDashboardData();
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Update Error: $e");
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      _locationService.stopTracking();
     }
   }
 
-  // --- NAVIGATION ---
-  void _onJobTap(Map<String, dynamic> jobData) {
-    final jobModel = Job.fromJson(jobData);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => JobDetailScreen(
-          job: jobModel,
-          // 'Confirmed' triggers the provider_id update in your PHP
-          onAccept: () => _handleStatusUpdate(jobModel.id, 'Confirmed'),
-          onFinish: () => _handleStatusUpdate(jobModel.id, 'completed'),
-        ),
-      ),
-    ).then((_) => _loadDashboardData());
+  // --- ONLINE/OFFLINE TOGGLE LOGIC ---
+  // Handle the Online/Offline Toggle
+  Future<void> _toggleStatus(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    // Fetching the ID here ensures 'providerId' is defined in this scope
+    int providerId = prefs.getInt('provider_id') ?? 0;
+
+    setState(() {
+      _isOnline = value;
+    });
+
+    if (_isOnline && providerId != 0) {
+      _locationService.startTracking(providerId.toString());
+      _showStatusSnack("You are now ONLINE", emerald);
+    } else {
+      // Now 'providerId' is defined and can be passed here
+      _locationService.stopTracking(providerId: providerId.toString());
+      _showStatusSnack("You are now OFFLINE", slate700);
+    }
+  }
+
+  void _showStatusSnack(String msg, Color bg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: bg, duration: const Duration(seconds: 2))
+    );
   }
 
   // --- DATA FETCHING ---
@@ -135,6 +129,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // --- STATUS UPDATES ---
+  Future<void> _handleStatusUpdate(int jobId, String newStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int providerId = prefs.getInt('provider_id') ?? 0;
+
+      final response = await http.post(
+        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/update_job_status.php"),
+        body: {
+          'job_id': jobId.toString(),
+          'status': newStatus,
+          'provider_id': providerId.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _loadDashboardData();
+      }
+    } catch (e) {
+      debugPrint("Update Error: $e");
+    }
+  }
+
+  void _onJobTap(Map<String, dynamic> jobData) {
+    final jobModel = Job.fromJson(jobData);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => JobDetailScreen(
+          job: jobModel,
+          onAccept: () => _handleStatusUpdate(jobModel.id, 'Confirmed'),
+          onFinish: () => _handleStatusUpdate(jobModel.id, 'completed'),
+        ),
+      ),
+    ).then((_) => _loadDashboardData());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 delegate: SliverChildListDelegate([
                   _buildHeroStats(),
                   const SizedBox(height: 32),
-                  _rowHeader("Active Mission", null),
+                  _sectionTitle("Active Mission"),
                   const SizedBox(height: 16),
                   _buildPriorityCard(),
                   const SizedBox(height: 32),
@@ -170,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- UI WIDGETS ---
+  // --- UI COMPONENTS ---
 
   Widget _buildHeader() {
     return SliverToBoxAdapter(
@@ -188,10 +219,18 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _profileImageUrl == null ? Icon(Icons.person, color: primaryColor) : null,
             ),
             const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("Welcome back,", style: TextStyle(color: slate500, fontSize: 13)),
-              Text(_userName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: slate900)),
-            ]),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text("Status: ${_isOnline ? 'Online' : 'Offline'}",
+                    style: TextStyle(color: _isOnline ? emerald : slate400, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(_userName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: slate900)),
+              ]),
+            ),
+            Switch(
+              value: _isOnline,
+              onChanged: _toggleStatus,
+              activeColor: emerald,
+            ),
           ],
         ),
       ),
@@ -219,6 +258,22 @@ class _HomeScreenState extends State<HomeScreen> {
     Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
     Text(label, style: TextStyle(color: slate400, fontSize: 10)),
   ]);
+
+  Widget _sectionTitle(String title) {
+    return Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: slate900));
+  }
+
+  Widget _rowHeader(String t, VoidCallback? onTap) => Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(t, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: slate900)),
+        if (onTap != null)
+          IconButton(
+              onPressed: onTap, // Changed from onTap to onPressed
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16)
+          )
+      ]
+  );
 
   Widget _buildPriorityCard() {
     if (_priorityMission == null) {
@@ -302,11 +357,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _rowHeader(String t, VoidCallback? onTap) => Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(t, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: slate900)),
-      ]
-  );
 }

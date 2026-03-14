@@ -15,25 +15,36 @@ class Job {
   final String customer;
   final String customerRating;
   final String detailedDescription;
+  // --- ADD THESE TWO FIELDS ---
+  final double latitude;
+  final double longitude;
   JobStatus status;
 
   Job({
-    required this.id, required this.customerId, required this.customerPhone,
-    this.customerImage, required this.type, required this.location,
-    required this.rate, required this.category, required this.customer,
-    required this.customerRating, required this.detailedDescription, required this.status,
+    required this.id,
+    required this.customerId,
+    required this.customerPhone,
+    this.customerImage,
+    required this.type,
+    required this.location,
+    required this.rate,
+    required this.category,
+    required this.customer,
+    required this.customerRating,
+    required this.detailedDescription,
+    required this.status,
+    // --- ADD TO CONSTRUCTOR ---
+    required this.latitude,
+    required this.longitude,
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
-    // 1. Ensure this URL is your CURRENT active ngrok link
-    // 2. Do NOT put a slash at the very end if you're adding it manually below
     const String baseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix";
 
     String? rawPath = json['profile_image']?.toString();
     String? finalImageUrl;
 
     if (rawPath != null && rawPath.isNotEmpty && rawPath != "null") {
-      // Logic: If rawPath starts with 'uploads', just add a single slash
       finalImageUrl = "$baseUrl/$rawPath";
     }
 
@@ -41,7 +52,7 @@ class Job {
       id: int.tryParse(json['id'].toString()) ?? 0,
       customerId: int.tryParse(json['user_id']?.toString() ?? '0') ?? 0,
       customerPhone: (json['phone'] ?? '').toString(),
-      customerImage: finalImageUrl, // Using the cleaned URL
+      customerImage: finalImageUrl,
       type: (json['service_name'] ?? 'Service').toString().toUpperCase(),
       location: json['address'] ?? 'No Address',
       rate: "₹${json['amount'] ?? '0'}",
@@ -50,6 +61,9 @@ class Job {
       customerRating: '4.9',
       detailedDescription: json['notes'] ?? "No notes.",
       status: _parseStatus(json['status']?.toString()),
+      // --- PARSE THE LAT/LNG FROM DATABASE ---
+      latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
+      longitude: double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
     );
   }
 
@@ -57,9 +71,8 @@ class Job {
     if (status == null || status.isEmpty) return JobStatus.available;
     String s = status.toLowerCase().trim();
 
-    // Mapping logic
     if (s == 'pending' || s == 'available') return JobStatus.pending;
-    if (s == 'confirmed' || s == 'active') return JobStatus.active;
+    if (s == 'confirmed' || s == 'active' || s == 'Confirmed') return JobStatus.active;
     if (s == 'completed') return JobStatus.completed;
 
     return JobStatus.available;

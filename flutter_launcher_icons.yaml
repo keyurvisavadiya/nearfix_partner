@@ -1,0 +1,21 @@
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+
+  # --- THE FIX FOR SMALL SIZE ---
+  adaptive_icon_background: "#FFFFFF" # Your primary Indigo color
+  adaptive_icon_foreground: "assets/logo.png"
+
+  # A negative inset pushes the logo to the edges, making it look LARGER.
+  # Start with -10. If it's still too small, try -15.
+  adaptive_icon_foreground_inset: -10
+
+  # --- OTHERS ---
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/logo.png"
+    background_color: "#6366F1"
+    theme_color: "#6366F1"
+  # ... (rest of your config)

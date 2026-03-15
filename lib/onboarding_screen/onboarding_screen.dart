@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../authentication/login_screen.dart'; // Ensure this path is correct
+import '../authentication/login_screen.dart';
+import '../market/models/app_colors.dart'; // Ensure this path is correct
 
 const Color primaryBtnColor = Color.fromARGB(255, 51, 54, 93);
 
@@ -75,7 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             height: 54,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBtnColor,
+                backgroundColor: AppColors.green,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

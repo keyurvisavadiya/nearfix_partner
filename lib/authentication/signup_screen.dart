@@ -47,7 +47,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      var uri = Uri.parse('https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/register.php');
+      var uri = Uri.parse('https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/register.php');
       var request = http.MultipartRequest('POST', uri);
 
       // Necessary for ngrok and JSON handling

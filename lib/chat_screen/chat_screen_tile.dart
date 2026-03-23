@@ -15,7 +15,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   int? _myProviderId;
 
-  final String _baseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/get_chat_list.php";
+  final String _baseUrl = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_chat_list.php";
 
   @override
   void initState() {
@@ -114,7 +114,7 @@ class ChatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String fullPath = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/$imageUrl";
+    String fullPath = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/$imageUrl";
 
     return GestureDetector(
       onTap: () {

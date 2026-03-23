@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      var uri = Uri.parse('https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/partner_login.php');
+      var uri = Uri.parse('https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/partner_login.php');
       var response = await http.post(
         uri,
         headers: {'ngrok-skip-browser-warning': 'true'},

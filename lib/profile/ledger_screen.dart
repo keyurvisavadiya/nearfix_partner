@@ -27,7 +27,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
       final prefs = await SharedPreferences.getInstance();
       final int providerId = prefs.getInt('provider_id') ?? 0;
 
-      final url = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
+      final url = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
 
       final response = await http.get(Uri.parse(url), headers: {"ngrok-skip-browser-warning": "true"});
       final decoded = jsonDecode(response.body);

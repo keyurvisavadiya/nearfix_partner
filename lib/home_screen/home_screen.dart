@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadDashboardData() async {
     final prefs = await SharedPreferences.getInstance();
     int providerId = prefs.getInt('provider_id') ?? 0;
-    const String imageBaseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/uploads/";
+    const String imageBaseUrl = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/uploads/";
 
     setState(() {
       _userName = prefs.getString('provider_name') ?? "Partner";
@@ -69,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     try {
       final response = await http.get(
-        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
+        Uri.parse("https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
 
@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       int providerId = prefs.getInt('provider_id') ?? 0;
       final response = await http.post(
-        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/update_job_status.php"),
+        Uri.parse("https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/update_job_status.php"),
         body: {'job_id': jobId.toString(), 'status': newStatus, 'provider_id': providerId.toString()},
       );
       if (response.statusCode == 200) _loadDashboardData();

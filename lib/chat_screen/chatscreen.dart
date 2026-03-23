@@ -44,7 +44,7 @@ class _ProviderChatMessageScreenState extends State<ProviderChatMessageScreen> {
   Future<void> _fetchMessages() async {
     try {
       final response = await http.get(
-        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/chat_handler.php?action=fetch&user1=${widget.currentUserId}&user2=${widget.peerId}"),
+        Uri.parse("https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/chat_handler.php?action=fetch&user1=${widget.currentUserId}&user2=${widget.peerId}"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
       final data = jsonDecode(response.body);
@@ -70,7 +70,7 @@ class _ProviderChatMessageScreenState extends State<ProviderChatMessageScreen> {
     String msg = _messageController.text.trim();
     _messageController.clear();
     await http.post(
-      Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/chat_handler.php?action=send"),
+      Uri.parse("https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/chat_handler.php?action=send"),
       body: {
         "sender_id": widget.currentUserId.toString(),
         "receiver_id": widget.peerId.toString(),

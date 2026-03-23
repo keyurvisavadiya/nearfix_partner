@@ -38,7 +38,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
   Future<void> _fetchStats(int providerId) async {
     try {
       final res = await http.get(
-        Uri.parse("https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
+        Uri.parse("https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
       if (res.statusCode == 200) {
@@ -59,7 +59,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String imageUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix/$_profilePic";
+    String imageUrl = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/$_profilePic";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),

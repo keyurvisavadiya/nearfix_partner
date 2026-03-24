@@ -23,103 +23,127 @@ class JobCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppColors.borderGrey),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Category / Title / Location + Rate ───────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Category badge + title
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      job.category.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.labelGrey,
-                        letterSpacing: 0.6,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        job.category.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                          letterSpacing: 0.8,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 8),
                     Text(
                       job.type,
-                      style: const TextStyle(
-                        fontSize: 17,
+                      style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AppColors.dark,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      job.location,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.grey,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 12, color: AppColors.grey),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            job.location,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.grey,
+                                fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              Text(
-                job.rate,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.dark,
-                ),
+              // Rate
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    job.rate,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                  Text('payout',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.labelGrey,
+                          fontWeight: FontWeight.w500)),
+                ],
               ),
             ],
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: AppColors.divider),
+          Divider(height: 1, color: AppColors.divider),
           const SizedBox(height: 12),
 
-          // ── Customer + Buttons
           Row(
             children: [
-              Text(
-                job.customer.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.grey,
-                  letterSpacing: 0.4,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  job.customer.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.grey,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
               const Spacer(),
-              // Details pill
               GestureDetector(
                 onTap: () => onTap(job),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.borderGrey),
                   ),
-                  child: const Text(
+                  child: Text(
                     'DETAILS',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF6B7280),
-                      letterSpacing: 0.4,
+                      color: AppColors.cardText,
                     ),
                   ),
                 ),

@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nearfix_partner/market/models/app_colors.dart';
 
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
-
   @override
   State<LedgerScreen> createState() => _LedgerScreenState();
 }
@@ -26,12 +26,11 @@ class _LedgerScreenState extends State<LedgerScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final int providerId = prefs.getInt('provider_id') ?? 0;
-
-      final url = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
-
-      final response = await http.get(Uri.parse(url), headers: {"ngrok-skip-browser-warning": "true"});
+      final url =
+          "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
+      final response = await http.get(Uri.parse(url),
+          headers: {"ngrok-skip-browser-warning": "true"});
       final decoded = jsonDecode(response.body);
-
       if (decoded['success'] == true) {
         setState(() {
           settledAmount = double.parse(decoded['settled'].toString());
@@ -49,117 +48,222 @@ class _LedgerScreenState extends State<LedgerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black54),
-          onPressed: () => Navigator.pop(context),
+        scrolledUnderElevation: 0.5,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.borderGrey),
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded,
+                size: 15, color: AppColors.dark),
+          ),
         ),
-        title: const Text(
-          'TRANSACTION LEDGER',
-          style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-        ),
+        title: Text('Transaction Ledger',
+            style: TextStyle(
+                color: AppColors.dark,
+                fontSize: 17,
+                fontWeight: FontWeight.w800)),
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF33365D)))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
-        onRefresh: _fetchLedgerData,
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // --- Top Summary Cards ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  _buildSummaryCard('SETTLED', '₹${settledAmount.toInt()}', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
-                  const SizedBox(width: 12),
-                  _buildSummaryCard('PENDING', '₹${pendingAmount.toInt()}', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+              onRefresh: _fetchLedgerData,
+              color: AppColors.primary,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          // Summary row
+                          Row(
+                            children: [
+                              _summaryCard(
+                                  'SETTLED',
+                                  '₹${settledAmount.toInt()}',
+                                  AppColors.primaryLight,
+                                  AppColors.primary,
+                                  Icons.check_circle_outline_rounded),
+                              const SizedBox(width: 12),
+                              _summaryCard(
+                                  'PENDING',
+                                  '₹${pendingAmount.toInt()}',
+                                  const Color(0xFFFEF3C7),
+                                  const Color(0xFFF59E0B),
+                                  Icons.access_time_rounded),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          // Header
+                          Row(
+                            children: [
+                              Text('All Transactions',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.dark)),
+                              const Spacer(),
+                              Text('${transactions.length} records',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.grey,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  transactions.isEmpty
+                      ? SliverFillRemaining(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.receipt_long_outlined,
+                                  size: 56, color: AppColors.borderGrey),
+                              const SizedBox(height: 12),
+                              Text("No transactions yet",
+                                  style: TextStyle(
+                                      color: AppColors.grey,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final item = transactions[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _buildTransactionTile(
+                                      item['service_name'] ?? 'Service',
+                                      '₹${item['amount']}',
+                                      item['booking_date'] ?? '',
+                                      item['status'] == 'completed'),
+                                );
+                              },
+                              childCount: transactions.length,
+                            ),
+                          ),
+                        ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
-            // --- Transaction List ---
-            Expanded(
-              child: transactions.isEmpty
-                  ? const Center(child: Text("No transactions yet"))
-                  : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final item = transactions[index];
-                  return _buildTransactionTile(
-                      item['service_name'] ?? 'Service',
-                      '₹${item['amount']}',
-                      item['booking_date'] ?? '',
-                      item['status'] == 'completed'
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  // --- Keep your existing UI Helper methods (_buildSummaryCard & _buildTransactionTile) below ---
-  Widget _buildSummaryCard(String label, String amount, Color bgColor, Color textColor) {
+  Widget _summaryCard(String label, String amount, Color bgColor,
+      Color textColor, IconData icon) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+            color: bgColor, borderRadius: BorderRadius.circular(18)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: textColor, fontSize: 10, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 8),
-            Text(amount, style: TextStyle(color: textColor, fontSize: 22, fontWeight: FontWeight.w900)),
+            Icon(icon, color: textColor, size: 20),
+            const SizedBox(height: 10),
+            Text(label,
+                style: TextStyle(
+                    color: textColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8)),
+            const SizedBox(height: 4),
+            Text(amount,
+                style: TextStyle(
+                    color: textColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTransactionTile(String title, String amount, String date, bool isSettled) {
-    final statusColor = isSettled ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00);
-    final statusBg = isSettled ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+  Widget _buildTransactionTile(
+      String title, String amount, String date, bool isSettled) {
+    final statusColor =
+        isSettled ? AppColors.primary : const Color(0xFFF59E0B);
+    final statusBg =
+        isSettled ? AppColors.primaryLight : const Color(0xFFFEF3C7);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderGrey),
       ),
       child: Row(
         children: [
           Container(
-            height: 48, width: 48,
-            decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(14)),
-            child: Icon(isSettled ? Icons.check_circle_outline : Icons.access_time, color: statusColor, size: 24),
+            height: 46,
+            width: 46,
+            decoration: BoxDecoration(
+                color: statusBg, borderRadius: BorderRadius.circular(13)),
+            child: Icon(
+                isSettled
+                    ? Icons.check_rounded
+                    : Icons.access_time_rounded,
+                color: statusColor,
+                size: 22),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                const SizedBox(height: 4),
-                Text(date, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w600)),
+                Text(title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.dark)),
+                const SizedBox(height: 3),
+                Text(date,
+                    style: TextStyle(
+                        color: AppColors.labelGrey,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500)),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(amount, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+              Text(amount,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: AppColors.dark)),
               const SizedBox(height: 4),
-              Text(isSettled ? 'SETTLED' : 'PENDING', style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.w900)),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(6)),
+                child: Text(isSettled ? 'SETTLED' : 'PENDING',
+                    style: TextStyle(
+                        color: statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900)),
+              ),
             ],
           ),
         ],

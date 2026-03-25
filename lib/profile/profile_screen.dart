@@ -24,6 +24,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
   void initState() {
     super.initState();
     _loadProfileData();
+
   }
 
   Future<void> _loadProfileData() async {

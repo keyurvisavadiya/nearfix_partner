@@ -35,8 +35,7 @@ class JobDetailScreen extends StatelessWidget {
       } else if (await canLaunchUrl(appleMapsUri)) {
         await launchUrl(appleMapsUri);
       } else {
-        final String webUrl =
-            "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng";
+        final String webUrl = "http://maps.google.com/maps?q=$lat,$lng";
         await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
       }
     } catch (e) {
@@ -183,8 +182,8 @@ class JobDetailScreen extends StatelessWidget {
               height: 54,
               child: (job.customerImage != null && job.customerImage!.isNotEmpty)
                   ? Image.network(job.customerImage!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildAvatarFallback())
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _buildAvatarFallback())
                   : _buildAvatarFallback(),
             ),
           ),
@@ -214,17 +213,19 @@ class JobDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => _makePhoneCall(job.customerPhone),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(13)),
-              child: const Icon(Icons.phone_rounded, color: Colors.white, size: 20),
+          // HIDES PHONE BUTTON IF COMPLETED
+          if (job.status != JobStatus.completed)
+            GestureDetector(
+              onTap: () => _makePhoneCall(job.customerPhone),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(13)),
+                child: const Icon(Icons.phone_rounded, color: Colors.white, size: 20),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -256,30 +257,32 @@ class JobDetailScreen extends StatelessWidget {
                               color: AppColors.dark)),
                     ),
                     const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () => _openMapDirections(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.directions_rounded,
-                                color: Colors.white, size: 16),
-                            SizedBox(width: 4),
-                            Text("GO",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12)),
-                          ],
+                    // HIDES MAP BUTTON IF COMPLETED
+                    if (job.status != JobStatus.completed)
+                      GestureDetector(
+                        onTap: () => _openMapDirections(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.directions_rounded,
+                                  color: Colors.white, size: 16),
+                              SizedBox(width: 4),
+                              Text("GO",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12)),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -387,15 +390,15 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _ctaButton(
       {required String label,
-      required Color color,
-      required VoidCallback onTap}) {
+        required Color color,
+        required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration:
-            BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
+        BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
         child: Center(
           child: Text(label,
               style: const TextStyle(

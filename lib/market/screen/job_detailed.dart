@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../chat_screen/chatscreen.dart';
 import '../models/job.dart';
 import '../models/app_colors.dart';
 import '../widgets/section_label.dart';
@@ -383,8 +381,7 @@ class JobDetailScreen extends StatelessWidget {
             ),
           ),
         );
-      default:
-        return const SizedBox.shrink();
+
     }
   }
 

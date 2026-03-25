@@ -20,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _profileImageUrl;
   String _userName = "Partner";
   int _totalCompletedJobs = 0;
+  double _rating = 0.0; // Added for dynamic rating
   List<dynamic> _recentMissions = [];
   Map<String, dynamic>? _priorityMission;
   bool _isLoading = true;
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int providerId = prefs.getInt('provider_id') ?? 0;
     const String imageBaseUrl =
         "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/uploads/";
+
     setState(() {
       _userName = prefs.getString('provider_name') ?? "Partner";
       String? rawImage = prefs.getString('profile_pic');
@@ -60,30 +62,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _profileImageUrl = "$imageBaseUrl${rawImage.replaceAll('uploads/', '')}";
       }
     });
+
     try {
       final response = await http.get(
         Uri.parse(
             "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
+
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded['success']) {
           List<dynamic> allJobs = decoded['data'];
           setState(() {
+            // Calculate Rating if returned by API, otherwise default to 0.0
+            _rating = (decoded['provider_rating'] ?? 0.0).toDouble();
+
             _totalCompletedJobs = allJobs
                 .where((j) => ['completed', 'finish']
-                    .contains(j['status']?.toString().toLowerCase()))
+                .contains(j['status']?.toString().toLowerCase()))
                 .length;
+
             _priorityMission = allJobs.firstWhere(
-              (j) => ['active', 'confirmed']
+                  (j) => ['active', 'confirmed']
                   .contains(j['status']?.toString().toLowerCase()),
               orElse: () => null,
             );
+
             _recentMissions = allJobs
                 .where((j) =>
-                    _priorityMission == null ||
-                    j['id'].toString() != _priorityMission!['id'].toString())
+            _priorityMission == null ||
+                j['id'].toString() != _priorityMission!['id'].toString())
                 .take(5)
                 .toList();
             _isLoading = false;
@@ -208,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         radius: 26,
         backgroundColor: AppColors.primaryLight,
         backgroundImage:
-            _profileImageUrl != null ? NetworkImage(_profileImageUrl!) : null,
+        _profileImageUrl != null ? NetworkImage(_profileImageUrl!) : null,
         child: _profileImageUrl == null
             ? Icon(Icons.person_rounded, color: AppColors.primary, size: 26)
             : null,
@@ -262,7 +271,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _statCard("Missions", "$_totalCompletedJobs",
             Icons.bolt_rounded, AppColors.primary, AppColors.primaryLight),
         const SizedBox(width: 12),
-        _statCard("Rating", "4.9",
+        // UPDATED: Now uses the dynamic _rating variable
+        _statCard("Rating", _rating == 0.0 ? "N/A" : _rating.toStringAsFixed(1),
             Icons.star_rounded, const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
         const SizedBox(width: 12),
         _statCard("Level", "Gold",
@@ -430,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildActivityTile(Map<String, dynamic> job) {
     bool isDone =
-        ['completed', 'finish'].contains(job['status']?.toString().toLowerCase());
+    ['completed', 'finish'].contains(job['status']?.toString().toLowerCase());
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(

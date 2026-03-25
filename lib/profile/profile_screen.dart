@@ -18,6 +18,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
   String _profilePic = "";
   String _totalRevenue = "0";
   int _totalMissions = 0;
+  double _rating = 0.0;
 
   @override
   void initState() {
@@ -35,6 +36,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
     _fetchStats(prefs.getInt('provider_id') ?? 0);
   }
 
+
   Future<void> _fetchStats(int providerId) async {
     try {
       final res = await http.get(
@@ -47,15 +49,20 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
         if (decoded['success']) {
           double revenue = 0;
           int finished = 0;
+
+          // Loop through jobs for revenue and mission count
           for (var job in decoded['data']) {
             if (job['status'].toString().toLowerCase() == 'completed') {
               revenue += double.tryParse(job['amount'].toString()) ?? 0;
               finished++;
             }
           }
+
           setState(() {
             _totalRevenue = revenue.toStringAsFixed(0);
             _totalMissions = finished;
+            // GET THE RATING FROM PHP HERE
+            _rating = (decoded['provider_rating'] ?? 0.0).toDouble();
           });
         }
       }
@@ -63,7 +70,6 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
       debugPrint(e.toString());
     }
   }
-
   @override
   Widget build(BuildContext context) {
     String imageUrl =
@@ -167,7 +173,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                   // Menu items
                   _menuCard([
                     _menuItem(Icons.account_balance_wallet_outlined,
-                        'Account Center', () {}),
+                        'Edit Profile', () {}),
                     _divider(),
                     _menuItem(Icons.receipt_long_outlined, 'View Ledger', () {
                       Navigator.push(
@@ -176,9 +182,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                               builder: (_) => LedgerScreen()));
                     }),
                     _divider(),
-                    _menuItem(
-                        Icons.help_outline_rounded, 'Help & Support', () {}),
-                  ]),
+
 
                   const SizedBox(height: 16),
 
@@ -221,7 +225,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                   const SizedBox(height: 32),
                 ],
               ),
-            ),
+    ])),
           ),
         ],
       ),
@@ -291,7 +295,10 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                   width: 1,
                   height: 32,
                   color: Colors.white.withOpacity(0.15)),
-              _revenueStatItem('4.9 ★', 'Avg Rating'),
+              _revenueStatItem(
+                  _rating == 0.0 ? 'N/A' : '${_rating.toStringAsFixed(1)} ★',
+                  'Avg Rating'
+              ),
               Container(
                   width: 1,
                   height: 32,

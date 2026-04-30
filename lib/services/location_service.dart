@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import '../app_config.dart';
+
 class ProviderLocationService {
   Timer? _locationTimer;
-  final String apiUrl = "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/update_provider_location.php";
+  final String apiUrl = "${AppConfig.baseUrl}/update_provider_location.php";
 
   Future<void> startTracking(String providerId) async {
     // 1. Check if location services are enabled on the phone

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/chat_screen/chatscreen.dart';
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
   @override
@@ -17,7 +19,7 @@ class _ChatScreenState extends State<ChatScreen> {
   int? _myProviderId;
 
   final String _baseUrl =
-      "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_chat_list.php";
+      "${AppConfig.baseUrl}/get_chat_list.php";
 
   @override
   void initState() {
@@ -176,7 +178,7 @@ class ChatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String fullPath =
-        "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/$imageUrl";
+        "${AppConfig.baseUrl}/$imageUrl";
     return GestureDetector(
       onTap: () {
         Navigator.push(

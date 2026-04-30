@@ -6,6 +6,8 @@ import 'package:nearfix_partner/authentication/signup_screen.dart';
 import 'package:nearfix_partner/main.dart';
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -26,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       var uri = Uri.parse(
-          'https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/partner_login.php');
+          '${AppConfig.baseUrl}/partner_login.php');
       var response = await http.post(
         uri,
         headers: {'ngrok-skip-browser-warning': 'true'},

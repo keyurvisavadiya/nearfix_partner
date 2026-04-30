@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
   @override
@@ -27,7 +29,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
       final prefs = await SharedPreferences.getInstance();
       final int providerId = prefs.getInt('provider_id') ?? 0;
       final url =
-          "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_ledger.php?provider_id=$providerId";
+          "${AppConfig.baseUrl}/get_ledger.php?provider_id=$providerId";
       final response = await http.get(Uri.parse(url),
           headers: {"ngrok-skip-browser-warning": "true"});
       final decoded = jsonDecode(response.body);

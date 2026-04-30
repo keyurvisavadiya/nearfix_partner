@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class ProviderChatMessageScreen extends StatefulWidget {
   final int currentUserId;
   final int peerId;
@@ -48,7 +50,7 @@ class _ProviderChatMessageScreenState
     try {
       final response = await http.get(
         Uri.parse(
-            "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/chat_handler.php?action=fetch&user1=${widget.currentUserId}&user2=${widget.peerId}"),
+            "${AppConfig.baseUrl}/chat_handler.php?action=fetch&user1=${widget.currentUserId}&user2=${widget.peerId}"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
       final data = jsonDecode(response.body);
@@ -78,7 +80,7 @@ class _ProviderChatMessageScreenState
     _messageController.clear();
     await http.post(
       Uri.parse(
-          "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/chat_handler.php?action=send"),
+          "${AppConfig.baseUrl}/chat_handler.php?action=send"),
       body: {
         "sender_id": widget.currentUserId.toString(),
         "receiver_id": widget.peerId.toString(),

@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
   @override
@@ -47,7 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      var uri = Uri.parse('https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/register.php');
+      var uri = Uri.parse('${AppConfig.baseUrl}/register.php');
       var request = http.MultipartRequest('POST', uri);
       request.headers.addAll({'ngrok-skip-browser-warning': 'true', 'Accept': 'application/json'});
       request.fields['full_name'] = _nameController.text;

@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/authentication/login_screen.dart';
 import 'package:nearfix_partner/market/models/app_colors.dart';
 
+import '../app_config.dart';
+
 class ProviderProfileScreen extends StatefulWidget {
   const ProviderProfileScreen({super.key});
   @override
@@ -41,7 +43,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
     try {
       final res = await http.get(
         Uri.parse(
-            "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
+            "${AppConfig.baseUrl}/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
       if (res.statusCode == 200) {
@@ -73,7 +75,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
   @override
   Widget build(BuildContext context) {
     String imageUrl =
-        "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/$_profilePic";
+        "${AppConfig.baseUrl}/$_profilePic";
 
     return Scaffold(
       backgroundColor: AppColors.bg,

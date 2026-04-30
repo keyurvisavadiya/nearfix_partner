@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nearfix_partner/services/location_service.dart';
 import 'package:nearfix_partner/market/models/job.dart';
 import 'package:nearfix_partner/market/screen/market_screen.dart';
+import '../app_config.dart';
 import '../market/models/app_colors.dart';
 import '../market/screen/job_detailed.dart';
 
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     int providerId = prefs.getInt('provider_id') ?? 0;
     const String imageBaseUrl =
-        "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/uploads/";
+        "${AppConfig.baseUrl}/uploads/";
 
     setState(() {
       _userName = prefs.getString('provider_name') ?? "Partner";
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final response = await http.get(
         Uri.parse(
-            "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/get_jobs.php?provider_id=$providerId"),
+            "${AppConfig.baseUrl}/get_jobs.php?provider_id=$providerId"),
         headers: {"ngrok-skip-browser-warning": "true"},
       );
 
@@ -561,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       int providerId = prefs.getInt('provider_id') ?? 0;
       final response = await http.post(
         Uri.parse(
-            "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/update_job_status.php"),
+            "${AppConfig.baseUrl}/update_job_status.php"),
         body: {
           'job_id': jobId.toString(),
           'status': newStatus,

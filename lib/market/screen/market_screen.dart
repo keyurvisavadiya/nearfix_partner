@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../app_config.dart';
 import '../widgets/job_list.dart';
 import '../screen/job_detailed.dart';
 import '../models/job.dart';
@@ -22,7 +23,7 @@ class _MarketScreenState extends State<MarketScreen>
   Timer? _refreshTimer; // Timer instance for background updates
 
   final String _baseUrl =
-      "https://marcella-intonational-tatyana.ngrok-free.dev/nearfix/";
+      "${AppConfig.baseUrl}/";
 
   @override
   void initState() {

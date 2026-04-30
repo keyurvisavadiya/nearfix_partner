@@ -211,7 +211,6 @@ class JobDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          // HIDES PHONE BUTTON IF COMPLETED
           if (job.status != JobStatus.completed)
             GestureDetector(
               onTap: () => _makePhoneCall(job.customerPhone),
@@ -255,7 +254,6 @@ class JobDetailScreen extends StatelessWidget {
                               color: AppColors.dark)),
                     ),
                     const SizedBox(width: 10),
-                    // HIDES MAP BUTTON IF COMPLETED
                     if (job.status != JobStatus.completed)
                       GestureDetector(
                         onTap: () => _openMapDirections(context),
@@ -351,7 +349,7 @@ class JobDetailScreen extends StatelessWidget {
             color: AppColors.dark,
             onTap: onAccept);
       case JobStatus.active:
-      case JobStatus.Confirmed:
+      case JobStatus.Confirmed: // RECOGNIZES AUTO-ACCEPTED STATUS
         return _ctaButton(
             label: 'FINISH JOB',
             color: AppColors.primary,
@@ -381,7 +379,8 @@ class JobDetailScreen extends StatelessWidget {
             ),
           ),
         );
-
+      default:
+        return const SizedBox.shrink();
     }
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../app_config.dart';
+
 // Ensure 'pending' is exactly here
 enum JobStatus { available, active, completed, pending, Confirmed }
 
@@ -39,7 +41,7 @@ class Job {
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
-    const String baseUrl = "https://sal-unstunted-guadalupe.ngrok-free.dev/nearfix";
+    const String baseUrl = "${AppConfig.baseUrl}/";
 
     String? rawPath = json['profile_image']?.toString();
     String? finalImageUrl;
